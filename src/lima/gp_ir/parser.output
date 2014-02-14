@@ -1,0 +1,3073 @@
+Terminals which are not used
+
+   SAMPLER2D
+   SAMPLERCUBE
+   INVARIANT
+   PRECISION
+
+
+State 12 conflicts: 1 shift/reduce
+
+
+Grammar
+
+    0 $accept: complete_program $end
+
+    1 const_index: '[' CONST_INDEX ']'
+
+    2 storage_qualifier: UNIFORM
+    3                  | ATTRIBUTE
+    4                  | VARYING
+
+    5 precision: PRECISION_LOW
+    6          | PRECISION_MEDIUM
+    7          | PRECISION_HIGH
+    8          | PRECISION_SUPER
+
+    9 scalar_type: BOOL
+   10            | INT
+   11            | FLOAT
+
+   12 vec2_type: BVEC2
+   13          | IVEC2
+   14          | VEC2
+
+   15 vec3_type: BVEC3
+   16          | IVEC3
+   17          | VEC3
+
+   18 vec4_type: BVEC4
+   19          | IVEC4
+   20          | VEC4
+
+   21 type: scalar_type
+   22     | vec2_type
+   23     | vec3_type
+   24     | vec4_type
+   25     | MAT2
+   26     | MAT3
+   27     | MAT4
+
+   28 reg_size: FLOAT
+   29         | VEC2
+   30         | VEC3
+   31         | VEC4
+
+   32 reg_type: /* empty */
+   33         | '<' reg_size '>'
+
+   34 scalar_const: CONST_INDEX
+   35             | CONST_FLOAT
+   36             | CONST_BOOL
+
+   37 vec2_const: vec2_type '(' scalar_const ',' scalar_const ')'
+
+   38 vec3_const: vec3_type '(' scalar_const ',' scalar_const ',' scalar_const ')'
+   39           | vec3_type '(' vec2_const ',' scalar_const ')'
+   40           | vec3_type '(' scalar_const ',' vec2_const ')'
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' scalar_const ',' scalar_const ')'
+   42           | vec4_type '(' vec2_const ',' vec2_const ')'
+   43           | vec4_type '(' vec2_const ',' scalar_const ',' scalar_const ')'
+   44           | vec4_type '(' scalar_const ',' vec2_const ',' scalar_const ')'
+   45           | vec4_type '(' scalar_const ',' scalar_const ',' vec2_const ')'
+   46           | vec4_type '(' vec3_const ',' scalar_const ')'
+   47           | vec4_type '(' scalar_const ',' vec3_const ')'
+
+   48 declaration: storage_qualifier precision type IDENTIFIER ';'
+   49            | storage_qualifier type IDENTIFIER ';'
+   50            | storage_qualifier precision type IDENTIFIER const_index ';'
+   51            | storage_qualifier type IDENTIFIER const_index ';'
+   52            | CONST precision scalar_type IDENTIFIER '=' scalar_const ';'
+   53            | CONST precision vec2_type IDENTIFIER '=' vec2_const ';'
+   54            | CONST precision vec3_type IDENTIFIER '=' vec3_const ';'
+   55            | CONST precision vec4_type IDENTIFIER '=' vec4_const ';'
+
+   56 temp_alloc: '(' TEMP_ALLOC CONST_INDEX ')'
+
+   57 opt_negate: /* empty */
+   58           | '-'
+
+   59 alu_node: '(' opt_negate ALU_OP_1 opt_negate node ')'
+   60         | '(' opt_negate ALU_OP_2 opt_negate node opt_negate node ')'
+   61         | '(' opt_negate ALU_OP_3 opt_negate node opt_negate node opt_negate node ')'
+
+   62 clamp_const: '(' CLAMP_CONST CONST_INDEX node ')'
+   63            | '(' CLAMP_CONST INLINE CONST_FLOAT CONST_FLOAT node ')'
+
+   64 const: '(' INLINE_CONST CONST_FLOAT ')'
+
+   65 expr: '(' EXPR IDENTIFIER ')'
+
+   66 virt_reg: '(' VIRT_REG IDENTIFIER '.' COMPONENT ')'
+
+   67 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT ')'
+   68     | '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+   69     | '(' LOAD_TEMP CONST_INDEX '.' COMPONENT ')'
+   70     | '(' LOAD_TEMP CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+   71     | '(' LOAD_ATTRIBUTE CONST_INDEX '.' COMPONENT ')'
+
+   72 node: alu_node
+   73     | clamp_const
+   74     | const
+   75     | expr
+   76     | virt_reg
+   77     | load
+
+   78 expr_def: '(' DEF_EXPR IDENTIFIER node ')'
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node ')'
+   80             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+   83 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node ')'
+   84              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+   87 temp_store: '(' STORE_TEMP node COMPONENT ':' node ')'
+   88           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node ')'
+   89           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+   91 off_reg_store: '(' STORE_OFF0 node ')'
+   92              | '(' STORE_OFF1 node ')'
+   93              | '(' STORE_OFF2 node ')'
+
+   94 branch: '(' BRANCH IDENTIFIER ')'
+   95       | '(' BRANCH IDENTIFIER node ')'
+
+   96 root_node: expr_def
+   97          | virt_reg_def
+   98          | varying_store
+   99          | temp_store
+  100          | off_reg_store
+  101          | branch
+
+  102 phi_node_src: '(' IDENTIFIER IDENTIFIER ')'
+
+  103 phi_node_srcs: /* empty */
+  104              | phi_node_srcs phi_node_src
+
+  105 phi_node: '(' PHI reg_type IDENTIFIER phi_node_srcs ')'
+
+  106 block: IDENTIFIER ':'
+  107      | block phi_node
+  108      | block root_node
+
+  109 program: /* empty */
+  110        | program block
+  111        | program declaration
+  112        | program temp_alloc
+
+  113 complete_program: program
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'(' (40) 37 38 39 40 41 42 43 44 45 46 47 56 59 60 61 62 63 64 65 66
+    67 68 69 70 71 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93
+    94 95 102 105
+')' (41) 37 38 39 40 41 42 43 44 45 46 47 56 59 60 61 62 63 64 65 66
+    67 68 69 70 71 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93
+    94 95 102 105
+',' (44) 37 38 39 40 41 42 43 44 45 46 47
+'-' (45) 58
+'.' (46) 66 67 68 69 70 71
+':' (58) 68 70 79 80 81 82 83 84 85 86 87 88 89 90 106
+';' (59) 48 49 50 51 52 53 54 55
+'<' (60) 33
+'=' (61) 52 53 54 55
+'>' (62) 33
+'[' (91) 1
+']' (93) 1
+error (256)
+TEMP_ALLOC (258) 56
+ATTRIBUTE (259) 3
+UNIFORM (260) 2
+VARYING (261) 4
+CONST (262) 52 53 54 55
+PRECISION_SUPER (263) 8
+PRECISION_HIGH (264) 7
+PRECISION_MEDIUM (265) 6
+PRECISION_LOW (266) 5
+BOOL (267) 9
+FLOAT (268) 11 28
+INT (269) 10
+BVEC2 (270) 12
+BVEC3 (271) 15
+BVEC4 (272) 18
+IVEC2 (273) 13
+IVEC3 (274) 16
+IVEC4 (275) 19
+VEC2 (276) 14 29
+VEC3 (277) 17 30
+VEC4 (278) 20 31
+MAT2 (279) 25
+MAT3 (280) 26
+MAT4 (281) 27
+SAMPLER2D (282)
+SAMPLERCUBE (283)
+INVARIANT (284)
+PRECISION (285)
+IDENTIFIER (286) 48 49 50 51 52 53 54 55 65 66 78 79 80 81 82 94 95
+    102 105 106
+CONST_INDEX (287) 1 34 56 62 67 68 69 70 71 83 84 85 86
+CONST_FLOAT (288) 35 63 64
+CONST_BOOL (289) 36
+ALU_OP_1 (290) 59
+ALU_OP_2 (291) 60
+ALU_OP_3 (292) 61
+CLAMP_CONST (293) 62 63
+INLINE (294) 63
+INLINE_CONST (295) 64
+EXPR (296) 65
+DEF_EXPR (297) 78
+VIRT_REG (298) 66
+STORE_VIRT_REG (299) 79 80 81 82
+STORE_VARYING (300) 83 84 85 86
+STORE_TEMP (301) 87 88 89 90
+STORE_OFF0 (302) 91
+STORE_OFF1 (303) 92
+STORE_OFF2 (304) 93
+LOAD_UNIFORM (305) 67 68
+LOAD_TEMP (306) 69 70
+LOAD_ATTRIBUTE (307) 71
+OFF_REG (308) 68 70
+BRANCH (309) 94 95
+PHI (310) 105
+COMPONENT (311) 66 67 68 69 70 71 79 80 81 82 83 84 85 86 87 88 89
+    90
+
+
+Nonterminals, with rules where they appear
+
+$accept (69)
+    on left: 0
+const_index (70)
+    on left: 1, on right: 50 51
+storage_qualifier (71)
+    on left: 2 3 4, on right: 48 49 50 51
+precision (72)
+    on left: 5 6 7 8, on right: 48 50 52 53 54 55
+scalar_type (73)
+    on left: 9 10 11, on right: 21 52
+vec2_type (74)
+    on left: 12 13 14, on right: 22 37 53
+vec3_type (75)
+    on left: 15 16 17, on right: 23 38 39 40 54
+vec4_type (76)
+    on left: 18 19 20, on right: 24 41 42 43 44 45 46 47 55
+type (77)
+    on left: 21 22 23 24 25 26 27, on right: 48 49 50 51
+reg_size (78)
+    on left: 28 29 30 31, on right: 33
+reg_type (79)
+    on left: 32 33, on right: 79 80 81 82 105
+scalar_const (80)
+    on left: 34 35 36, on right: 37 38 39 40 41 43 44 45 46 47 52
+vec2_const (81)
+    on left: 37, on right: 39 40 42 43 44 45 53
+vec3_const (82)
+    on left: 38 39 40, on right: 46 47 54
+vec4_const (83)
+    on left: 41 42 43 44 45 46 47, on right: 55
+declaration (84)
+    on left: 48 49 50 51 52 53 54 55, on right: 111
+temp_alloc (85)
+    on left: 56, on right: 112
+opt_negate (86)
+    on left: 57 58, on right: 59 60 61
+alu_node (87)
+    on left: 59 60 61, on right: 72
+clamp_const (88)
+    on left: 62 63, on right: 73
+const (89)
+    on left: 64, on right: 74
+expr (90)
+    on left: 65, on right: 75
+virt_reg (91)
+    on left: 66, on right: 76
+load (92)
+    on left: 67 68 69 70 71, on right: 77
+node (93)
+    on left: 72 73 74 75 76 77, on right: 59 60 61 62 63 78 79 80 81
+    82 83 84 85 86 87 88 89 90 91 92 93 95
+expr_def (94)
+    on left: 78, on right: 96
+virt_reg_def (95)
+    on left: 79 80 81 82, on right: 97
+varying_store (96)
+    on left: 83 84 85 86, on right: 98
+temp_store (97)
+    on left: 87 88 89 90, on right: 99
+off_reg_store (98)
+    on left: 91 92 93, on right: 100
+branch (99)
+    on left: 94 95, on right: 101
+root_node (100)
+    on left: 96 97 98 99 100 101, on right: 108
+phi_node_src (101)
+    on left: 102, on right: 104
+phi_node_srcs (102)
+    on left: 103 104, on right: 104 105
+phi_node (103)
+    on left: 105, on right: 107
+block (104)
+    on left: 106 107 108, on right: 107 108 110
+program (105)
+    on left: 109 110 111 112, on right: 110 111 112 113
+complete_program (106)
+    on left: 113, on right: 0
+
+
+state 0
+
+    0 $accept: . complete_program $end
+
+    $default  reduce using rule 109 (program)
+
+    program           go to state 1
+    complete_program  go to state 2
+
+
+state 1
+
+  110 program: program . block
+  111        | program . declaration
+  112        | program . temp_alloc
+  113 complete_program: program .
+
+    ATTRIBUTE   shift, and go to state 3
+    UNIFORM     shift, and go to state 4
+    VARYING     shift, and go to state 5
+    CONST       shift, and go to state 6
+    IDENTIFIER  shift, and go to state 7
+    '('         shift, and go to state 8
+
+    $default  reduce using rule 113 (complete_program)
+
+    storage_qualifier  go to state 9
+    declaration        go to state 10
+    temp_alloc         go to state 11
+    block              go to state 12
+
+
+state 2
+
+    0 $accept: complete_program . $end
+
+    $end  shift, and go to state 13
+
+
+state 3
+
+    3 storage_qualifier: ATTRIBUTE .
+
+    $default  reduce using rule 3 (storage_qualifier)
+
+
+state 4
+
+    2 storage_qualifier: UNIFORM .
+
+    $default  reduce using rule 2 (storage_qualifier)
+
+
+state 5
+
+    4 storage_qualifier: VARYING .
+
+    $default  reduce using rule 4 (storage_qualifier)
+
+
+state 6
+
+   52 declaration: CONST . precision scalar_type IDENTIFIER '=' scalar_const ';'
+   53            | CONST . precision vec2_type IDENTIFIER '=' vec2_const ';'
+   54            | CONST . precision vec3_type IDENTIFIER '=' vec3_const ';'
+   55            | CONST . precision vec4_type IDENTIFIER '=' vec4_const ';'
+
+    PRECISION_SUPER   shift, and go to state 14
+    PRECISION_HIGH    shift, and go to state 15
+    PRECISION_MEDIUM  shift, and go to state 16
+    PRECISION_LOW     shift, and go to state 17
+
+    precision  go to state 18
+
+
+state 7
+
+  106 block: IDENTIFIER . ':'
+
+    ':'  shift, and go to state 19
+
+
+state 8
+
+   56 temp_alloc: '(' . TEMP_ALLOC CONST_INDEX ')'
+
+    TEMP_ALLOC  shift, and go to state 20
+
+
+state 9
+
+   48 declaration: storage_qualifier . precision type IDENTIFIER ';'
+   49            | storage_qualifier . type IDENTIFIER ';'
+   50            | storage_qualifier . precision type IDENTIFIER const_index ';'
+   51            | storage_qualifier . type IDENTIFIER const_index ';'
+
+    PRECISION_SUPER   shift, and go to state 14
+    PRECISION_HIGH    shift, and go to state 15
+    PRECISION_MEDIUM  shift, and go to state 16
+    PRECISION_LOW     shift, and go to state 17
+    BOOL              shift, and go to state 21
+    FLOAT             shift, and go to state 22
+    INT               shift, and go to state 23
+    BVEC2             shift, and go to state 24
+    BVEC3             shift, and go to state 25
+    BVEC4             shift, and go to state 26
+    IVEC2             shift, and go to state 27
+    IVEC3             shift, and go to state 28
+    IVEC4             shift, and go to state 29
+    VEC2              shift, and go to state 30
+    VEC3              shift, and go to state 31
+    VEC4              shift, and go to state 32
+    MAT2              shift, and go to state 33
+    MAT3              shift, and go to state 34
+    MAT4              shift, and go to state 35
+
+    precision    go to state 36
+    scalar_type  go to state 37
+    vec2_type    go to state 38
+    vec3_type    go to state 39
+    vec4_type    go to state 40
+    type         go to state 41
+
+
+state 10
+
+  111 program: program declaration .
+
+    $default  reduce using rule 111 (program)
+
+
+state 11
+
+  112 program: program temp_alloc .
+
+    $default  reduce using rule 112 (program)
+
+
+state 12
+
+  107 block: block . phi_node
+  108      | block . root_node
+  110 program: program block .
+
+    '('  shift, and go to state 42
+
+    '('       [reduce using rule 110 (program)]
+    $default  reduce using rule 110 (program)
+
+    expr_def       go to state 43
+    virt_reg_def   go to state 44
+    varying_store  go to state 45
+    temp_store     go to state 46
+    off_reg_store  go to state 47
+    branch         go to state 48
+    root_node      go to state 49
+    phi_node       go to state 50
+
+
+state 13
+
+    0 $accept: complete_program $end .
+
+    $default  accept
+
+
+state 14
+
+    8 precision: PRECISION_SUPER .
+
+    $default  reduce using rule 8 (precision)
+
+
+state 15
+
+    7 precision: PRECISION_HIGH .
+
+    $default  reduce using rule 7 (precision)
+
+
+state 16
+
+    6 precision: PRECISION_MEDIUM .
+
+    $default  reduce using rule 6 (precision)
+
+
+state 17
+
+    5 precision: PRECISION_LOW .
+
+    $default  reduce using rule 5 (precision)
+
+
+state 18
+
+   52 declaration: CONST precision . scalar_type IDENTIFIER '=' scalar_const ';'
+   53            | CONST precision . vec2_type IDENTIFIER '=' vec2_const ';'
+   54            | CONST precision . vec3_type IDENTIFIER '=' vec3_const ';'
+   55            | CONST precision . vec4_type IDENTIFIER '=' vec4_const ';'
+
+    BOOL   shift, and go to state 21
+    FLOAT  shift, and go to state 22
+    INT    shift, and go to state 23
+    BVEC2  shift, and go to state 24
+    BVEC3  shift, and go to state 25
+    BVEC4  shift, and go to state 26
+    IVEC2  shift, and go to state 27
+    IVEC3  shift, and go to state 28
+    IVEC4  shift, and go to state 29
+    VEC2   shift, and go to state 30
+    VEC3   shift, and go to state 31
+    VEC4   shift, and go to state 32
+
+    scalar_type  go to state 51
+    vec2_type    go to state 52
+    vec3_type    go to state 53
+    vec4_type    go to state 54
+
+
+state 19
+
+  106 block: IDENTIFIER ':' .
+
+    $default  reduce using rule 106 (block)
+
+
+state 20
+
+   56 temp_alloc: '(' TEMP_ALLOC . CONST_INDEX ')'
+
+    CONST_INDEX  shift, and go to state 55
+
+
+state 21
+
+    9 scalar_type: BOOL .
+
+    $default  reduce using rule 9 (scalar_type)
+
+
+state 22
+
+   11 scalar_type: FLOAT .
+
+    $default  reduce using rule 11 (scalar_type)
+
+
+state 23
+
+   10 scalar_type: INT .
+
+    $default  reduce using rule 10 (scalar_type)
+
+
+state 24
+
+   12 vec2_type: BVEC2 .
+
+    $default  reduce using rule 12 (vec2_type)
+
+
+state 25
+
+   15 vec3_type: BVEC3 .
+
+    $default  reduce using rule 15 (vec3_type)
+
+
+state 26
+
+   18 vec4_type: BVEC4 .
+
+    $default  reduce using rule 18 (vec4_type)
+
+
+state 27
+
+   13 vec2_type: IVEC2 .
+
+    $default  reduce using rule 13 (vec2_type)
+
+
+state 28
+
+   16 vec3_type: IVEC3 .
+
+    $default  reduce using rule 16 (vec3_type)
+
+
+state 29
+
+   19 vec4_type: IVEC4 .
+
+    $default  reduce using rule 19 (vec4_type)
+
+
+state 30
+
+   14 vec2_type: VEC2 .
+
+    $default  reduce using rule 14 (vec2_type)
+
+
+state 31
+
+   17 vec3_type: VEC3 .
+
+    $default  reduce using rule 17 (vec3_type)
+
+
+state 32
+
+   20 vec4_type: VEC4 .
+
+    $default  reduce using rule 20 (vec4_type)
+
+
+state 33
+
+   25 type: MAT2 .
+
+    $default  reduce using rule 25 (type)
+
+
+state 34
+
+   26 type: MAT3 .
+
+    $default  reduce using rule 26 (type)
+
+
+state 35
+
+   27 type: MAT4 .
+
+    $default  reduce using rule 27 (type)
+
+
+state 36
+
+   48 declaration: storage_qualifier precision . type IDENTIFIER ';'
+   50            | storage_qualifier precision . type IDENTIFIER const_index ';'
+
+    BOOL   shift, and go to state 21
+    FLOAT  shift, and go to state 22
+    INT    shift, and go to state 23
+    BVEC2  shift, and go to state 24
+    BVEC3  shift, and go to state 25
+    BVEC4  shift, and go to state 26
+    IVEC2  shift, and go to state 27
+    IVEC3  shift, and go to state 28
+    IVEC4  shift, and go to state 29
+    VEC2   shift, and go to state 30
+    VEC3   shift, and go to state 31
+    VEC4   shift, and go to state 32
+    MAT2   shift, and go to state 33
+    MAT3   shift, and go to state 34
+    MAT4   shift, and go to state 35
+
+    scalar_type  go to state 37
+    vec2_type    go to state 38
+    vec3_type    go to state 39
+    vec4_type    go to state 40
+    type         go to state 56
+
+
+state 37
+
+   21 type: scalar_type .
+
+    $default  reduce using rule 21 (type)
+
+
+state 38
+
+   22 type: vec2_type .
+
+    $default  reduce using rule 22 (type)
+
+
+state 39
+
+   23 type: vec3_type .
+
+    $default  reduce using rule 23 (type)
+
+
+state 40
+
+   24 type: vec4_type .
+
+    $default  reduce using rule 24 (type)
+
+
+state 41
+
+   49 declaration: storage_qualifier type . IDENTIFIER ';'
+   51            | storage_qualifier type . IDENTIFIER const_index ';'
+
+    IDENTIFIER  shift, and go to state 57
+
+
+state 42
+
+   78 expr_def: '(' . DEF_EXPR IDENTIFIER node ')'
+   79 virt_reg_def: '(' . STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node ')'
+   80             | '(' . STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node ')'
+   81             | '(' . STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' . STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   83 varying_store: '(' . STORE_VARYING CONST_INDEX COMPONENT ':' node ')'
+   84              | '(' . STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node ')'
+   85              | '(' . STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' . STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   87 temp_store: '(' . STORE_TEMP node COMPONENT ':' node ')'
+   88           | '(' . STORE_TEMP node COMPONENT ':' node COMPONENT ':' node ')'
+   89           | '(' . STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' . STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   91 off_reg_store: '(' . STORE_OFF0 node ')'
+   92              | '(' . STORE_OFF1 node ')'
+   93              | '(' . STORE_OFF2 node ')'
+   94 branch: '(' . BRANCH IDENTIFIER ')'
+   95       | '(' . BRANCH IDENTIFIER node ')'
+  105 phi_node: '(' . PHI reg_type IDENTIFIER phi_node_srcs ')'
+
+    DEF_EXPR        shift, and go to state 58
+    STORE_VIRT_REG  shift, and go to state 59
+    STORE_VARYING   shift, and go to state 60
+    STORE_TEMP      shift, and go to state 61
+    STORE_OFF0      shift, and go to state 62
+    STORE_OFF1      shift, and go to state 63
+    STORE_OFF2      shift, and go to state 64
+    BRANCH          shift, and go to state 65
+    PHI             shift, and go to state 66
+
+
+state 43
+
+   96 root_node: expr_def .
+
+    $default  reduce using rule 96 (root_node)
+
+
+state 44
+
+   97 root_node: virt_reg_def .
+
+    $default  reduce using rule 97 (root_node)
+
+
+state 45
+
+   98 root_node: varying_store .
+
+    $default  reduce using rule 98 (root_node)
+
+
+state 46
+
+   99 root_node: temp_store .
+
+    $default  reduce using rule 99 (root_node)
+
+
+state 47
+
+  100 root_node: off_reg_store .
+
+    $default  reduce using rule 100 (root_node)
+
+
+state 48
+
+  101 root_node: branch .
+
+    $default  reduce using rule 101 (root_node)
+
+
+state 49
+
+  108 block: block root_node .
+
+    $default  reduce using rule 108 (block)
+
+
+state 50
+
+  107 block: block phi_node .
+
+    $default  reduce using rule 107 (block)
+
+
+state 51
+
+   52 declaration: CONST precision scalar_type . IDENTIFIER '=' scalar_const ';'
+
+    IDENTIFIER  shift, and go to state 67
+
+
+state 52
+
+   53 declaration: CONST precision vec2_type . IDENTIFIER '=' vec2_const ';'
+
+    IDENTIFIER  shift, and go to state 68
+
+
+state 53
+
+   54 declaration: CONST precision vec3_type . IDENTIFIER '=' vec3_const ';'
+
+    IDENTIFIER  shift, and go to state 69
+
+
+state 54
+
+   55 declaration: CONST precision vec4_type . IDENTIFIER '=' vec4_const ';'
+
+    IDENTIFIER  shift, and go to state 70
+
+
+state 55
+
+   56 temp_alloc: '(' TEMP_ALLOC CONST_INDEX . ')'
+
+    ')'  shift, and go to state 71
+
+
+state 56
+
+   48 declaration: storage_qualifier precision type . IDENTIFIER ';'
+   50            | storage_qualifier precision type . IDENTIFIER const_index ';'
+
+    IDENTIFIER  shift, and go to state 72
+
+
+state 57
+
+   49 declaration: storage_qualifier type IDENTIFIER . ';'
+   51            | storage_qualifier type IDENTIFIER . const_index ';'
+
+    '['  shift, and go to state 73
+    ';'  shift, and go to state 74
+
+    const_index  go to state 75
+
+
+state 58
+
+   78 expr_def: '(' DEF_EXPR . IDENTIFIER node ')'
+
+    IDENTIFIER  shift, and go to state 76
+
+
+state 59
+
+   79 virt_reg_def: '(' STORE_VIRT_REG . reg_type IDENTIFIER COMPONENT ':' node ')'
+   80             | '(' STORE_VIRT_REG . reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG . reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG . reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '<'  shift, and go to state 77
+
+    $default  reduce using rule 32 (reg_type)
+
+    reg_type  go to state 78
+
+
+state 60
+
+   83 varying_store: '(' STORE_VARYING . CONST_INDEX COMPONENT ':' node ')'
+   84              | '(' STORE_VARYING . CONST_INDEX COMPONENT ':' node COMPONENT ':' node ')'
+   85              | '(' STORE_VARYING . CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING . CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    CONST_INDEX  shift, and go to state 79
+
+
+state 61
+
+   87 temp_store: '(' STORE_TEMP . node COMPONENT ':' node ')'
+   88           | '(' STORE_TEMP . node COMPONENT ':' node COMPONENT ':' node ')'
+   89           | '(' STORE_TEMP . node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP . node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 87
+
+
+state 62
+
+   91 off_reg_store: '(' STORE_OFF0 . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 88
+
+
+state 63
+
+   92 off_reg_store: '(' STORE_OFF1 . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 89
+
+
+state 64
+
+   93 off_reg_store: '(' STORE_OFF2 . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 90
+
+
+state 65
+
+   94 branch: '(' BRANCH . IDENTIFIER ')'
+   95       | '(' BRANCH . IDENTIFIER node ')'
+
+    IDENTIFIER  shift, and go to state 91
+
+
+state 66
+
+  105 phi_node: '(' PHI . reg_type IDENTIFIER phi_node_srcs ')'
+
+    '<'  shift, and go to state 77
+
+    $default  reduce using rule 32 (reg_type)
+
+    reg_type  go to state 92
+
+
+state 67
+
+   52 declaration: CONST precision scalar_type IDENTIFIER . '=' scalar_const ';'
+
+    '='  shift, and go to state 93
+
+
+state 68
+
+   53 declaration: CONST precision vec2_type IDENTIFIER . '=' vec2_const ';'
+
+    '='  shift, and go to state 94
+
+
+state 69
+
+   54 declaration: CONST precision vec3_type IDENTIFIER . '=' vec3_const ';'
+
+    '='  shift, and go to state 95
+
+
+state 70
+
+   55 declaration: CONST precision vec4_type IDENTIFIER . '=' vec4_const ';'
+
+    '='  shift, and go to state 96
+
+
+state 71
+
+   56 temp_alloc: '(' TEMP_ALLOC CONST_INDEX ')' .
+
+    $default  reduce using rule 56 (temp_alloc)
+
+
+state 72
+
+   48 declaration: storage_qualifier precision type IDENTIFIER . ';'
+   50            | storage_qualifier precision type IDENTIFIER . const_index ';'
+
+    '['  shift, and go to state 73
+    ';'  shift, and go to state 97
+
+    const_index  go to state 98
+
+
+state 73
+
+    1 const_index: '[' . CONST_INDEX ']'
+
+    CONST_INDEX  shift, and go to state 99
+
+
+state 74
+
+   49 declaration: storage_qualifier type IDENTIFIER ';' .
+
+    $default  reduce using rule 49 (declaration)
+
+
+state 75
+
+   51 declaration: storage_qualifier type IDENTIFIER const_index . ';'
+
+    ';'  shift, and go to state 100
+
+
+state 76
+
+   78 expr_def: '(' DEF_EXPR IDENTIFIER . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 101
+
+
+state 77
+
+   33 reg_type: '<' . reg_size '>'
+
+    FLOAT  shift, and go to state 102
+    VEC2   shift, and go to state 103
+    VEC3   shift, and go to state 104
+    VEC4   shift, and go to state 105
+
+    reg_size  go to state 106
+
+
+state 78
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type . IDENTIFIER COMPONENT ':' node ')'
+   80             | '(' STORE_VIRT_REG reg_type . IDENTIFIER COMPONENT ':' node COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type . IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type . IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    IDENTIFIER  shift, and go to state 107
+
+
+state 79
+
+   83 varying_store: '(' STORE_VARYING CONST_INDEX . COMPONENT ':' node ')'
+   84              | '(' STORE_VARYING CONST_INDEX . COMPONENT ':' node COMPONENT ':' node ')'
+   85              | '(' STORE_VARYING CONST_INDEX . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 108
+
+
+state 80
+
+   59 alu_node: '(' . opt_negate ALU_OP_1 opt_negate node ')'
+   60         | '(' . opt_negate ALU_OP_2 opt_negate node opt_negate node ')'
+   61         | '(' . opt_negate ALU_OP_3 opt_negate node opt_negate node opt_negate node ')'
+   62 clamp_const: '(' . CLAMP_CONST CONST_INDEX node ')'
+   63            | '(' . CLAMP_CONST INLINE CONST_FLOAT CONST_FLOAT node ')'
+   64 const: '(' . INLINE_CONST CONST_FLOAT ')'
+   65 expr: '(' . EXPR IDENTIFIER ')'
+   66 virt_reg: '(' . VIRT_REG IDENTIFIER '.' COMPONENT ')'
+   67 load: '(' . LOAD_UNIFORM CONST_INDEX '.' COMPONENT ')'
+   68     | '(' . LOAD_UNIFORM CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+   69     | '(' . LOAD_TEMP CONST_INDEX '.' COMPONENT ')'
+   70     | '(' . LOAD_TEMP CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+   71     | '(' . LOAD_ATTRIBUTE CONST_INDEX '.' COMPONENT ')'
+
+    CLAMP_CONST     shift, and go to state 109
+    INLINE_CONST    shift, and go to state 110
+    EXPR            shift, and go to state 111
+    VIRT_REG        shift, and go to state 112
+    LOAD_UNIFORM    shift, and go to state 113
+    LOAD_TEMP       shift, and go to state 114
+    LOAD_ATTRIBUTE  shift, and go to state 115
+    '-'             shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 117
+
+
+state 81
+
+   72 node: alu_node .
+
+    $default  reduce using rule 72 (node)
+
+
+state 82
+
+   73 node: clamp_const .
+
+    $default  reduce using rule 73 (node)
+
+
+state 83
+
+   74 node: const .
+
+    $default  reduce using rule 74 (node)
+
+
+state 84
+
+   75 node: expr .
+
+    $default  reduce using rule 75 (node)
+
+
+state 85
+
+   76 node: virt_reg .
+
+    $default  reduce using rule 76 (node)
+
+
+state 86
+
+   77 node: load .
+
+    $default  reduce using rule 77 (node)
+
+
+state 87
+
+   87 temp_store: '(' STORE_TEMP node . COMPONENT ':' node ')'
+   88           | '(' STORE_TEMP node . COMPONENT ':' node COMPONENT ':' node ')'
+   89           | '(' STORE_TEMP node . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 118
+
+
+state 88
+
+   91 off_reg_store: '(' STORE_OFF0 node . ')'
+
+    ')'  shift, and go to state 119
+
+
+state 89
+
+   92 off_reg_store: '(' STORE_OFF1 node . ')'
+
+    ')'  shift, and go to state 120
+
+
+state 90
+
+   93 off_reg_store: '(' STORE_OFF2 node . ')'
+
+    ')'  shift, and go to state 121
+
+
+state 91
+
+   94 branch: '(' BRANCH IDENTIFIER . ')'
+   95       | '(' BRANCH IDENTIFIER . node ')'
+
+    '('  shift, and go to state 80
+    ')'  shift, and go to state 122
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 123
+
+
+state 92
+
+  105 phi_node: '(' PHI reg_type . IDENTIFIER phi_node_srcs ')'
+
+    IDENTIFIER  shift, and go to state 124
+
+
+state 93
+
+   52 declaration: CONST precision scalar_type IDENTIFIER '=' . scalar_const ';'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 128
+
+
+state 94
+
+   53 declaration: CONST precision vec2_type IDENTIFIER '=' . vec2_const ';'
+
+    BVEC2  shift, and go to state 24
+    IVEC2  shift, and go to state 27
+    VEC2   shift, and go to state 30
+
+    vec2_type   go to state 129
+    vec2_const  go to state 130
+
+
+state 95
+
+   54 declaration: CONST precision vec3_type IDENTIFIER '=' . vec3_const ';'
+
+    BVEC3  shift, and go to state 25
+    IVEC3  shift, and go to state 28
+    VEC3   shift, and go to state 31
+
+    vec3_type   go to state 131
+    vec3_const  go to state 132
+
+
+state 96
+
+   55 declaration: CONST precision vec4_type IDENTIFIER '=' . vec4_const ';'
+
+    BVEC4  shift, and go to state 26
+    IVEC4  shift, and go to state 29
+    VEC4   shift, and go to state 32
+
+    vec4_type   go to state 133
+    vec4_const  go to state 134
+
+
+state 97
+
+   48 declaration: storage_qualifier precision type IDENTIFIER ';' .
+
+    $default  reduce using rule 48 (declaration)
+
+
+state 98
+
+   50 declaration: storage_qualifier precision type IDENTIFIER const_index . ';'
+
+    ';'  shift, and go to state 135
+
+
+state 99
+
+    1 const_index: '[' CONST_INDEX . ']'
+
+    ']'  shift, and go to state 136
+
+
+state 100
+
+   51 declaration: storage_qualifier type IDENTIFIER const_index ';' .
+
+    $default  reduce using rule 51 (declaration)
+
+
+state 101
+
+   78 expr_def: '(' DEF_EXPR IDENTIFIER node . ')'
+
+    ')'  shift, and go to state 137
+
+
+state 102
+
+   28 reg_size: FLOAT .
+
+    $default  reduce using rule 28 (reg_size)
+
+
+state 103
+
+   29 reg_size: VEC2 .
+
+    $default  reduce using rule 29 (reg_size)
+
+
+state 104
+
+   30 reg_size: VEC3 .
+
+    $default  reduce using rule 30 (reg_size)
+
+
+state 105
+
+   31 reg_size: VEC4 .
+
+    $default  reduce using rule 31 (reg_size)
+
+
+state 106
+
+   33 reg_type: '<' reg_size . '>'
+
+    '>'  shift, and go to state 138
+
+
+state 107
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER . COMPONENT ':' node ')'
+   80             | '(' STORE_VIRT_REG reg_type IDENTIFIER . COMPONENT ':' node COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 139
+
+
+state 108
+
+   83 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT . ':' node ')'
+   84              | '(' STORE_VARYING CONST_INDEX COMPONENT . ':' node COMPONENT ':' node ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 140
+
+
+state 109
+
+   62 clamp_const: '(' CLAMP_CONST . CONST_INDEX node ')'
+   63            | '(' CLAMP_CONST . INLINE CONST_FLOAT CONST_FLOAT node ')'
+
+    CONST_INDEX  shift, and go to state 141
+    INLINE       shift, and go to state 142
+
+
+state 110
+
+   64 const: '(' INLINE_CONST . CONST_FLOAT ')'
+
+    CONST_FLOAT  shift, and go to state 143
+
+
+state 111
+
+   65 expr: '(' EXPR . IDENTIFIER ')'
+
+    IDENTIFIER  shift, and go to state 144
+
+
+state 112
+
+   66 virt_reg: '(' VIRT_REG . IDENTIFIER '.' COMPONENT ')'
+
+    IDENTIFIER  shift, and go to state 145
+
+
+state 113
+
+   67 load: '(' LOAD_UNIFORM . CONST_INDEX '.' COMPONENT ')'
+   68     | '(' LOAD_UNIFORM . CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+
+    CONST_INDEX  shift, and go to state 146
+
+
+state 114
+
+   69 load: '(' LOAD_TEMP . CONST_INDEX '.' COMPONENT ')'
+   70     | '(' LOAD_TEMP . CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+
+    CONST_INDEX  shift, and go to state 147
+
+
+state 115
+
+   71 load: '(' LOAD_ATTRIBUTE . CONST_INDEX '.' COMPONENT ')'
+
+    CONST_INDEX  shift, and go to state 148
+
+
+state 116
+
+   58 opt_negate: '-' .
+
+    $default  reduce using rule 58 (opt_negate)
+
+
+state 117
+
+   59 alu_node: '(' opt_negate . ALU_OP_1 opt_negate node ')'
+   60         | '(' opt_negate . ALU_OP_2 opt_negate node opt_negate node ')'
+   61         | '(' opt_negate . ALU_OP_3 opt_negate node opt_negate node opt_negate node ')'
+
+    ALU_OP_1  shift, and go to state 149
+    ALU_OP_2  shift, and go to state 150
+    ALU_OP_3  shift, and go to state 151
+
+
+state 118
+
+   87 temp_store: '(' STORE_TEMP node COMPONENT . ':' node ')'
+   88           | '(' STORE_TEMP node COMPONENT . ':' node COMPONENT ':' node ')'
+   89           | '(' STORE_TEMP node COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 152
+
+
+state 119
+
+   91 off_reg_store: '(' STORE_OFF0 node ')' .
+
+    $default  reduce using rule 91 (off_reg_store)
+
+
+state 120
+
+   92 off_reg_store: '(' STORE_OFF1 node ')' .
+
+    $default  reduce using rule 92 (off_reg_store)
+
+
+state 121
+
+   93 off_reg_store: '(' STORE_OFF2 node ')' .
+
+    $default  reduce using rule 93 (off_reg_store)
+
+
+state 122
+
+   94 branch: '(' BRANCH IDENTIFIER ')' .
+
+    $default  reduce using rule 94 (branch)
+
+
+state 123
+
+   95 branch: '(' BRANCH IDENTIFIER node . ')'
+
+    ')'  shift, and go to state 153
+
+
+state 124
+
+  105 phi_node: '(' PHI reg_type IDENTIFIER . phi_node_srcs ')'
+
+    $default  reduce using rule 103 (phi_node_srcs)
+
+    phi_node_srcs  go to state 154
+
+
+state 125
+
+   34 scalar_const: CONST_INDEX .
+
+    $default  reduce using rule 34 (scalar_const)
+
+
+state 126
+
+   35 scalar_const: CONST_FLOAT .
+
+    $default  reduce using rule 35 (scalar_const)
+
+
+state 127
+
+   36 scalar_const: CONST_BOOL .
+
+    $default  reduce using rule 36 (scalar_const)
+
+
+state 128
+
+   52 declaration: CONST precision scalar_type IDENTIFIER '=' scalar_const . ';'
+
+    ';'  shift, and go to state 155
+
+
+state 129
+
+   37 vec2_const: vec2_type . '(' scalar_const ',' scalar_const ')'
+
+    '('  shift, and go to state 156
+
+
+state 130
+
+   53 declaration: CONST precision vec2_type IDENTIFIER '=' vec2_const . ';'
+
+    ';'  shift, and go to state 157
+
+
+state 131
+
+   38 vec3_const: vec3_type . '(' scalar_const ',' scalar_const ',' scalar_const ')'
+   39           | vec3_type . '(' vec2_const ',' scalar_const ')'
+   40           | vec3_type . '(' scalar_const ',' vec2_const ')'
+
+    '('  shift, and go to state 158
+
+
+state 132
+
+   54 declaration: CONST precision vec3_type IDENTIFIER '=' vec3_const . ';'
+
+    ';'  shift, and go to state 159
+
+
+state 133
+
+   41 vec4_const: vec4_type . '(' scalar_const ',' scalar_const ',' scalar_const ',' scalar_const ')'
+   42           | vec4_type . '(' vec2_const ',' vec2_const ')'
+   43           | vec4_type . '(' vec2_const ',' scalar_const ',' scalar_const ')'
+   44           | vec4_type . '(' scalar_const ',' vec2_const ',' scalar_const ')'
+   45           | vec4_type . '(' scalar_const ',' scalar_const ',' vec2_const ')'
+   46           | vec4_type . '(' vec3_const ',' scalar_const ')'
+   47           | vec4_type . '(' scalar_const ',' vec3_const ')'
+
+    '('  shift, and go to state 160
+
+
+state 134
+
+   55 declaration: CONST precision vec4_type IDENTIFIER '=' vec4_const . ';'
+
+    ';'  shift, and go to state 161
+
+
+state 135
+
+   50 declaration: storage_qualifier precision type IDENTIFIER const_index ';' .
+
+    $default  reduce using rule 50 (declaration)
+
+
+state 136
+
+    1 const_index: '[' CONST_INDEX ']' .
+
+    $default  reduce using rule 1 (const_index)
+
+
+state 137
+
+   78 expr_def: '(' DEF_EXPR IDENTIFIER node ')' .
+
+    $default  reduce using rule 78 (expr_def)
+
+
+state 138
+
+   33 reg_type: '<' reg_size '>' .
+
+    $default  reduce using rule 33 (reg_type)
+
+
+state 139
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT . ':' node ')'
+   80             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT . ':' node COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 162
+
+
+state 140
+
+   83 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' . node ')'
+   84              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' . node COMPONENT ':' node ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 163
+
+
+state 141
+
+   62 clamp_const: '(' CLAMP_CONST CONST_INDEX . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 164
+
+
+state 142
+
+   63 clamp_const: '(' CLAMP_CONST INLINE . CONST_FLOAT CONST_FLOAT node ')'
+
+    CONST_FLOAT  shift, and go to state 165
+
+
+state 143
+
+   64 const: '(' INLINE_CONST CONST_FLOAT . ')'
+
+    ')'  shift, and go to state 166
+
+
+state 144
+
+   65 expr: '(' EXPR IDENTIFIER . ')'
+
+    ')'  shift, and go to state 167
+
+
+state 145
+
+   66 virt_reg: '(' VIRT_REG IDENTIFIER . '.' COMPONENT ')'
+
+    '.'  shift, and go to state 168
+
+
+state 146
+
+   67 load: '(' LOAD_UNIFORM CONST_INDEX . '.' COMPONENT ')'
+   68     | '(' LOAD_UNIFORM CONST_INDEX . '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+
+    '.'  shift, and go to state 169
+
+
+state 147
+
+   69 load: '(' LOAD_TEMP CONST_INDEX . '.' COMPONENT ')'
+   70     | '(' LOAD_TEMP CONST_INDEX . '.' COMPONENT OFF_REG ':' CONST_INDEX ')'
+
+    '.'  shift, and go to state 170
+
+
+state 148
+
+   71 load: '(' LOAD_ATTRIBUTE CONST_INDEX . '.' COMPONENT ')'
+
+    '.'  shift, and go to state 171
+
+
+state 149
+
+   59 alu_node: '(' opt_negate ALU_OP_1 . opt_negate node ')'
+
+    '-'  shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 172
+
+
+state 150
+
+   60 alu_node: '(' opt_negate ALU_OP_2 . opt_negate node opt_negate node ')'
+
+    '-'  shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 173
+
+
+state 151
+
+   61 alu_node: '(' opt_negate ALU_OP_3 . opt_negate node opt_negate node opt_negate node ')'
+
+    '-'  shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 174
+
+
+state 152
+
+   87 temp_store: '(' STORE_TEMP node COMPONENT ':' . node ')'
+   88           | '(' STORE_TEMP node COMPONENT ':' . node COMPONENT ':' node ')'
+   89           | '(' STORE_TEMP node COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 175
+
+
+state 153
+
+   95 branch: '(' BRANCH IDENTIFIER node ')' .
+
+    $default  reduce using rule 95 (branch)
+
+
+state 154
+
+  104 phi_node_srcs: phi_node_srcs . phi_node_src
+  105 phi_node: '(' PHI reg_type IDENTIFIER phi_node_srcs . ')'
+
+    '('  shift, and go to state 176
+    ')'  shift, and go to state 177
+
+    phi_node_src  go to state 178
+
+
+state 155
+
+   52 declaration: CONST precision scalar_type IDENTIFIER '=' scalar_const ';' .
+
+    $default  reduce using rule 52 (declaration)
+
+
+state 156
+
+   37 vec2_const: vec2_type '(' . scalar_const ',' scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 179
+
+
+state 157
+
+   53 declaration: CONST precision vec2_type IDENTIFIER '=' vec2_const ';' .
+
+    $default  reduce using rule 53 (declaration)
+
+
+state 158
+
+   38 vec3_const: vec3_type '(' . scalar_const ',' scalar_const ',' scalar_const ')'
+   39           | vec3_type '(' . vec2_const ',' scalar_const ')'
+   40           | vec3_type '(' . scalar_const ',' vec2_const ')'
+
+    BVEC2        shift, and go to state 24
+    IVEC2        shift, and go to state 27
+    VEC2         shift, and go to state 30
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    vec2_type     go to state 129
+    scalar_const  go to state 180
+    vec2_const    go to state 181
+
+
+state 159
+
+   54 declaration: CONST precision vec3_type IDENTIFIER '=' vec3_const ';' .
+
+    $default  reduce using rule 54 (declaration)
+
+
+state 160
+
+   41 vec4_const: vec4_type '(' . scalar_const ',' scalar_const ',' scalar_const ',' scalar_const ')'
+   42           | vec4_type '(' . vec2_const ',' vec2_const ')'
+   43           | vec4_type '(' . vec2_const ',' scalar_const ',' scalar_const ')'
+   44           | vec4_type '(' . scalar_const ',' vec2_const ',' scalar_const ')'
+   45           | vec4_type '(' . scalar_const ',' scalar_const ',' vec2_const ')'
+   46           | vec4_type '(' . vec3_const ',' scalar_const ')'
+   47           | vec4_type '(' . scalar_const ',' vec3_const ')'
+
+    BVEC2        shift, and go to state 24
+    BVEC3        shift, and go to state 25
+    IVEC2        shift, and go to state 27
+    IVEC3        shift, and go to state 28
+    VEC2         shift, and go to state 30
+    VEC3         shift, and go to state 31
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    vec2_type     go to state 129
+    vec3_type     go to state 131
+    scalar_const  go to state 182
+    vec2_const    go to state 183
+    vec3_const    go to state 184
+
+
+state 161
+
+   55 declaration: CONST precision vec4_type IDENTIFIER '=' vec4_const ';' .
+
+    $default  reduce using rule 55 (declaration)
+
+
+state 162
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' . node ')'
+   80             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' . node COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 185
+
+
+state 163
+
+   83 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node . ')'
+   84              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node . COMPONENT ':' node ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 186
+    ')'        shift, and go to state 187
+
+
+state 164
+
+   62 clamp_const: '(' CLAMP_CONST CONST_INDEX node . ')'
+
+    ')'  shift, and go to state 188
+
+
+state 165
+
+   63 clamp_const: '(' CLAMP_CONST INLINE CONST_FLOAT . CONST_FLOAT node ')'
+
+    CONST_FLOAT  shift, and go to state 189
+
+
+state 166
+
+   64 const: '(' INLINE_CONST CONST_FLOAT ')' .
+
+    $default  reduce using rule 64 (const)
+
+
+state 167
+
+   65 expr: '(' EXPR IDENTIFIER ')' .
+
+    $default  reduce using rule 65 (expr)
+
+
+state 168
+
+   66 virt_reg: '(' VIRT_REG IDENTIFIER '.' . COMPONENT ')'
+
+    COMPONENT  shift, and go to state 190
+
+
+state 169
+
+   67 load: '(' LOAD_UNIFORM CONST_INDEX '.' . COMPONENT ')'
+   68     | '(' LOAD_UNIFORM CONST_INDEX '.' . COMPONENT OFF_REG ':' CONST_INDEX ')'
+
+    COMPONENT  shift, and go to state 191
+
+
+state 170
+
+   69 load: '(' LOAD_TEMP CONST_INDEX '.' . COMPONENT ')'
+   70     | '(' LOAD_TEMP CONST_INDEX '.' . COMPONENT OFF_REG ':' CONST_INDEX ')'
+
+    COMPONENT  shift, and go to state 192
+
+
+state 171
+
+   71 load: '(' LOAD_ATTRIBUTE CONST_INDEX '.' . COMPONENT ')'
+
+    COMPONENT  shift, and go to state 193
+
+
+state 172
+
+   59 alu_node: '(' opt_negate ALU_OP_1 opt_negate . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 194
+
+
+state 173
+
+   60 alu_node: '(' opt_negate ALU_OP_2 opt_negate . node opt_negate node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 195
+
+
+state 174
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate . node opt_negate node opt_negate node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 196
+
+
+state 175
+
+   87 temp_store: '(' STORE_TEMP node COMPONENT ':' node . ')'
+   88           | '(' STORE_TEMP node COMPONENT ':' node . COMPONENT ':' node ')'
+   89           | '(' STORE_TEMP node COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 197
+    ')'        shift, and go to state 198
+
+
+state 176
+
+  102 phi_node_src: '(' . IDENTIFIER IDENTIFIER ')'
+
+    IDENTIFIER  shift, and go to state 199
+
+
+state 177
+
+  105 phi_node: '(' PHI reg_type IDENTIFIER phi_node_srcs ')' .
+
+    $default  reduce using rule 105 (phi_node)
+
+
+state 178
+
+  104 phi_node_srcs: phi_node_srcs phi_node_src .
+
+    $default  reduce using rule 104 (phi_node_srcs)
+
+
+state 179
+
+   37 vec2_const: vec2_type '(' scalar_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 200
+
+
+state 180
+
+   38 vec3_const: vec3_type '(' scalar_const . ',' scalar_const ',' scalar_const ')'
+   40           | vec3_type '(' scalar_const . ',' vec2_const ')'
+
+    ','  shift, and go to state 201
+
+
+state 181
+
+   39 vec3_const: vec3_type '(' vec2_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 202
+
+
+state 182
+
+   41 vec4_const: vec4_type '(' scalar_const . ',' scalar_const ',' scalar_const ',' scalar_const ')'
+   44           | vec4_type '(' scalar_const . ',' vec2_const ',' scalar_const ')'
+   45           | vec4_type '(' scalar_const . ',' scalar_const ',' vec2_const ')'
+   47           | vec4_type '(' scalar_const . ',' vec3_const ')'
+
+    ','  shift, and go to state 203
+
+
+state 183
+
+   42 vec4_const: vec4_type '(' vec2_const . ',' vec2_const ')'
+   43           | vec4_type '(' vec2_const . ',' scalar_const ',' scalar_const ')'
+
+    ','  shift, and go to state 204
+
+
+state 184
+
+   46 vec4_const: vec4_type '(' vec3_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 205
+
+
+state 185
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node . ')'
+   80             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node . COMPONENT ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 206
+    ')'        shift, and go to state 207
+
+
+state 186
+
+   84 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT . ':' node ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 208
+
+
+state 187
+
+   83 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node ')' .
+
+    $default  reduce using rule 83 (varying_store)
+
+
+state 188
+
+   62 clamp_const: '(' CLAMP_CONST CONST_INDEX node ')' .
+
+    $default  reduce using rule 62 (clamp_const)
+
+
+state 189
+
+   63 clamp_const: '(' CLAMP_CONST INLINE CONST_FLOAT CONST_FLOAT . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 209
+
+
+state 190
+
+   66 virt_reg: '(' VIRT_REG IDENTIFIER '.' COMPONENT . ')'
+
+    ')'  shift, and go to state 210
+
+
+state 191
+
+   67 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT . ')'
+   68     | '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT . OFF_REG ':' CONST_INDEX ')'
+
+    OFF_REG  shift, and go to state 211
+    ')'      shift, and go to state 212
+
+
+state 192
+
+   69 load: '(' LOAD_TEMP CONST_INDEX '.' COMPONENT . ')'
+   70     | '(' LOAD_TEMP CONST_INDEX '.' COMPONENT . OFF_REG ':' CONST_INDEX ')'
+
+    OFF_REG  shift, and go to state 213
+    ')'      shift, and go to state 214
+
+
+state 193
+
+   71 load: '(' LOAD_ATTRIBUTE CONST_INDEX '.' COMPONENT . ')'
+
+    ')'  shift, and go to state 215
+
+
+state 194
+
+   59 alu_node: '(' opt_negate ALU_OP_1 opt_negate node . ')'
+
+    ')'  shift, and go to state 216
+
+
+state 195
+
+   60 alu_node: '(' opt_negate ALU_OP_2 opt_negate node . opt_negate node ')'
+
+    '-'  shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 217
+
+
+state 196
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate node . opt_negate node opt_negate node ')'
+
+    '-'  shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 218
+
+
+state 197
+
+   88 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT . ':' node ')'
+   89           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 219
+
+
+state 198
+
+   87 temp_store: '(' STORE_TEMP node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 87 (temp_store)
+
+
+state 199
+
+  102 phi_node_src: '(' IDENTIFIER . IDENTIFIER ')'
+
+    IDENTIFIER  shift, and go to state 220
+
+
+state 200
+
+   37 vec2_const: vec2_type '(' scalar_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 221
+
+
+state 201
+
+   38 vec3_const: vec3_type '(' scalar_const ',' . scalar_const ',' scalar_const ')'
+   40           | vec3_type '(' scalar_const ',' . vec2_const ')'
+
+    BVEC2        shift, and go to state 24
+    IVEC2        shift, and go to state 27
+    VEC2         shift, and go to state 30
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    vec2_type     go to state 129
+    scalar_const  go to state 222
+    vec2_const    go to state 223
+
+
+state 202
+
+   39 vec3_const: vec3_type '(' vec2_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 224
+
+
+state 203
+
+   41 vec4_const: vec4_type '(' scalar_const ',' . scalar_const ',' scalar_const ',' scalar_const ')'
+   44           | vec4_type '(' scalar_const ',' . vec2_const ',' scalar_const ')'
+   45           | vec4_type '(' scalar_const ',' . scalar_const ',' vec2_const ')'
+   47           | vec4_type '(' scalar_const ',' . vec3_const ')'
+
+    BVEC2        shift, and go to state 24
+    BVEC3        shift, and go to state 25
+    IVEC2        shift, and go to state 27
+    IVEC3        shift, and go to state 28
+    VEC2         shift, and go to state 30
+    VEC3         shift, and go to state 31
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    vec2_type     go to state 129
+    vec3_type     go to state 131
+    scalar_const  go to state 225
+    vec2_const    go to state 226
+    vec3_const    go to state 227
+
+
+state 204
+
+   42 vec4_const: vec4_type '(' vec2_const ',' . vec2_const ')'
+   43           | vec4_type '(' vec2_const ',' . scalar_const ',' scalar_const ')'
+
+    BVEC2        shift, and go to state 24
+    IVEC2        shift, and go to state 27
+    VEC2         shift, and go to state 30
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    vec2_type     go to state 129
+    scalar_const  go to state 228
+    vec2_const    go to state 229
+
+
+state 205
+
+   46 vec4_const: vec4_type '(' vec3_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 230
+
+
+state 206
+
+   80 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT . ':' node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 231
+
+
+state 207
+
+   79 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node ')' .
+
+    $default  reduce using rule 79 (virt_reg_def)
+
+
+state 208
+
+   84 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' . node ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 232
+
+
+state 209
+
+   63 clamp_const: '(' CLAMP_CONST INLINE CONST_FLOAT CONST_FLOAT node . ')'
+
+    ')'  shift, and go to state 233
+
+
+state 210
+
+   66 virt_reg: '(' VIRT_REG IDENTIFIER '.' COMPONENT ')' .
+
+    $default  reduce using rule 66 (virt_reg)
+
+
+state 211
+
+   68 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT OFF_REG . ':' CONST_INDEX ')'
+
+    ':'  shift, and go to state 234
+
+
+state 212
+
+   67 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT ')' .
+
+    $default  reduce using rule 67 (load)
+
+
+state 213
+
+   70 load: '(' LOAD_TEMP CONST_INDEX '.' COMPONENT OFF_REG . ':' CONST_INDEX ')'
+
+    ':'  shift, and go to state 235
+
+
+state 214
+
+   69 load: '(' LOAD_TEMP CONST_INDEX '.' COMPONENT ')' .
+
+    $default  reduce using rule 69 (load)
+
+
+state 215
+
+   71 load: '(' LOAD_ATTRIBUTE CONST_INDEX '.' COMPONENT ')' .
+
+    $default  reduce using rule 71 (load)
+
+
+state 216
+
+   59 alu_node: '(' opt_negate ALU_OP_1 opt_negate node ')' .
+
+    $default  reduce using rule 59 (alu_node)
+
+
+state 217
+
+   60 alu_node: '(' opt_negate ALU_OP_2 opt_negate node opt_negate . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 236
+
+
+state 218
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate node opt_negate . node opt_negate node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 237
+
+
+state 219
+
+   88 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' . node ')'
+   89           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 238
+
+
+state 220
+
+  102 phi_node_src: '(' IDENTIFIER IDENTIFIER . ')'
+
+    ')'  shift, and go to state 239
+
+
+state 221
+
+   37 vec2_const: vec2_type '(' scalar_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 240
+
+
+state 222
+
+   38 vec3_const: vec3_type '(' scalar_const ',' scalar_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 241
+
+
+state 223
+
+   40 vec3_const: vec3_type '(' scalar_const ',' vec2_const . ')'
+
+    ')'  shift, and go to state 242
+
+
+state 224
+
+   39 vec3_const: vec3_type '(' vec2_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 243
+
+
+state 225
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const . ',' scalar_const ',' scalar_const ')'
+   45           | vec4_type '(' scalar_const ',' scalar_const . ',' vec2_const ')'
+
+    ','  shift, and go to state 244
+
+
+state 226
+
+   44 vec4_const: vec4_type '(' scalar_const ',' vec2_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 245
+
+
+state 227
+
+   47 vec4_const: vec4_type '(' scalar_const ',' vec3_const . ')'
+
+    ')'  shift, and go to state 246
+
+
+state 228
+
+   43 vec4_const: vec4_type '(' vec2_const ',' scalar_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 247
+
+
+state 229
+
+   42 vec4_const: vec4_type '(' vec2_const ',' vec2_const . ')'
+
+    ')'  shift, and go to state 248
+
+
+state 230
+
+   46 vec4_const: vec4_type '(' vec3_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 249
+
+
+state 231
+
+   80 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' . node ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 250
+
+
+state 232
+
+   84 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node . ')'
+   85              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 251
+    ')'        shift, and go to state 252
+
+
+state 233
+
+   63 clamp_const: '(' CLAMP_CONST INLINE CONST_FLOAT CONST_FLOAT node ')' .
+
+    $default  reduce using rule 63 (clamp_const)
+
+
+state 234
+
+   68 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT OFF_REG ':' . CONST_INDEX ')'
+
+    CONST_INDEX  shift, and go to state 253
+
+
+state 235
+
+   70 load: '(' LOAD_TEMP CONST_INDEX '.' COMPONENT OFF_REG ':' . CONST_INDEX ')'
+
+    CONST_INDEX  shift, and go to state 254
+
+
+state 236
+
+   60 alu_node: '(' opt_negate ALU_OP_2 opt_negate node opt_negate node . ')'
+
+    ')'  shift, and go to state 255
+
+
+state 237
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate node opt_negate node . opt_negate node ')'
+
+    '-'  shift, and go to state 116
+
+    $default  reduce using rule 57 (opt_negate)
+
+    opt_negate  go to state 256
+
+
+state 238
+
+   88 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node . ')'
+   89           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 257
+    ')'        shift, and go to state 258
+
+
+state 239
+
+  102 phi_node_src: '(' IDENTIFIER IDENTIFIER ')' .
+
+    $default  reduce using rule 102 (phi_node_src)
+
+
+state 240
+
+   37 vec2_const: vec2_type '(' scalar_const ',' scalar_const ')' .
+
+    $default  reduce using rule 37 (vec2_const)
+
+
+state 241
+
+   38 vec3_const: vec3_type '(' scalar_const ',' scalar_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 259
+
+
+state 242
+
+   40 vec3_const: vec3_type '(' scalar_const ',' vec2_const ')' .
+
+    $default  reduce using rule 40 (vec3_const)
+
+
+state 243
+
+   39 vec3_const: vec3_type '(' vec2_const ',' scalar_const ')' .
+
+    $default  reduce using rule 39 (vec3_const)
+
+
+state 244
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' . scalar_const ',' scalar_const ')'
+   45           | vec4_type '(' scalar_const ',' scalar_const ',' . vec2_const ')'
+
+    BVEC2        shift, and go to state 24
+    IVEC2        shift, and go to state 27
+    VEC2         shift, and go to state 30
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    vec2_type     go to state 129
+    scalar_const  go to state 260
+    vec2_const    go to state 261
+
+
+state 245
+
+   44 vec4_const: vec4_type '(' scalar_const ',' vec2_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 262
+
+
+state 246
+
+   47 vec4_const: vec4_type '(' scalar_const ',' vec3_const ')' .
+
+    $default  reduce using rule 47 (vec4_const)
+
+
+state 247
+
+   43 vec4_const: vec4_type '(' vec2_const ',' scalar_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 263
+
+
+state 248
+
+   42 vec4_const: vec4_type '(' vec2_const ',' vec2_const ')' .
+
+    $default  reduce using rule 42 (vec4_const)
+
+
+state 249
+
+   46 vec4_const: vec4_type '(' vec3_const ',' scalar_const ')' .
+
+    $default  reduce using rule 46 (vec4_const)
+
+
+state 250
+
+   80 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node . ')'
+   81             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 264
+    ')'        shift, and go to state 265
+
+
+state 251
+
+   85 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 266
+
+
+state 252
+
+   84 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 84 (varying_store)
+
+
+state 253
+
+   68 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX . ')'
+
+    ')'  shift, and go to state 267
+
+
+state 254
+
+   70 load: '(' LOAD_TEMP CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX . ')'
+
+    ')'  shift, and go to state 268
+
+
+state 255
+
+   60 alu_node: '(' opt_negate ALU_OP_2 opt_negate node opt_negate node ')' .
+
+    $default  reduce using rule 60 (alu_node)
+
+
+state 256
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate node opt_negate node opt_negate . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 269
+
+
+state 257
+
+   89 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 270
+
+
+state 258
+
+   88 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 88 (temp_store)
+
+
+state 259
+
+   38 vec3_const: vec3_type '(' scalar_const ',' scalar_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 271
+
+
+state 260
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' scalar_const . ',' scalar_const ')'
+
+    ','  shift, and go to state 272
+
+
+state 261
+
+   45 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' vec2_const . ')'
+
+    ')'  shift, and go to state 273
+
+
+state 262
+
+   44 vec4_const: vec4_type '(' scalar_const ',' vec2_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 274
+
+
+state 263
+
+   43 vec4_const: vec4_type '(' vec2_const ',' scalar_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 275
+
+
+state 264
+
+   81 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node COMPONENT ':' node ')'
+
+    ':'  shift, and go to state 276
+
+
+state 265
+
+   80 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 80 (virt_reg_def)
+
+
+state 266
+
+   85 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 277
+
+
+state 267
+
+   68 load: '(' LOAD_UNIFORM CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')' .
+
+    $default  reduce using rule 68 (load)
+
+
+state 268
+
+   70 load: '(' LOAD_TEMP CONST_INDEX '.' COMPONENT OFF_REG ':' CONST_INDEX ')' .
+
+    $default  reduce using rule 70 (load)
+
+
+state 269
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate node opt_negate node opt_negate node . ')'
+
+    ')'  shift, and go to state 278
+
+
+state 270
+
+   89 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 279
+
+
+state 271
+
+   38 vec3_const: vec3_type '(' scalar_const ',' scalar_const ',' scalar_const ')' .
+
+    $default  reduce using rule 38 (vec3_const)
+
+
+state 272
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' scalar_const ',' . scalar_const ')'
+
+    CONST_INDEX  shift, and go to state 125
+    CONST_FLOAT  shift, and go to state 126
+    CONST_BOOL   shift, and go to state 127
+
+    scalar_const  go to state 280
+
+
+state 273
+
+   45 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' vec2_const ')' .
+
+    $default  reduce using rule 45 (vec4_const)
+
+
+state 274
+
+   44 vec4_const: vec4_type '(' scalar_const ',' vec2_const ',' scalar_const ')' .
+
+    $default  reduce using rule 44 (vec4_const)
+
+
+state 275
+
+   43 vec4_const: vec4_type '(' vec2_const ',' scalar_const ',' scalar_const ')' .
+
+    $default  reduce using rule 43 (vec4_const)
+
+
+state 276
+
+   81 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node COMPONENT ':' node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 281
+
+
+state 277
+
+   85 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . ')'
+   86              | '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 282
+    ')'        shift, and go to state 283
+
+
+state 278
+
+   61 alu_node: '(' opt_negate ALU_OP_3 opt_negate node opt_negate node opt_negate node ')' .
+
+    $default  reduce using rule 61 (alu_node)
+
+
+state 279
+
+   89 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . ')'
+   90           | '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 284
+    ')'        shift, and go to state 285
+
+
+state 280
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' scalar_const ',' scalar_const . ')'
+
+    ')'  shift, and go to state 286
+
+
+state 281
+
+   81 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . ')'
+   82             | '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . COMPONENT ':' node ')'
+
+    COMPONENT  shift, and go to state 287
+    ')'        shift, and go to state 288
+
+
+state 282
+
+   86 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node ')'
+
+    ':'  shift, and go to state 289
+
+
+state 283
+
+   85 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 85 (varying_store)
+
+
+state 284
+
+   90 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node ')'
+
+    ':'  shift, and go to state 290
+
+
+state 285
+
+   89 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 89 (temp_store)
+
+
+state 286
+
+   41 vec4_const: vec4_type '(' scalar_const ',' scalar_const ',' scalar_const ',' scalar_const ')' .
+
+    $default  reduce using rule 41 (vec4_const)
+
+
+state 287
+
+   82 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT . ':' node ')'
+
+    ':'  shift, and go to state 291
+
+
+state 288
+
+   81 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 81 (virt_reg_def)
+
+
+state 289
+
+   86 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 292
+
+
+state 290
+
+   90 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 293
+
+
+state 291
+
+   82 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' . node ')'
+
+    '('  shift, and go to state 80
+
+    alu_node     go to state 81
+    clamp_const  go to state 82
+    const        go to state 83
+    expr         go to state 84
+    virt_reg     go to state 85
+    load         go to state 86
+    node         go to state 294
+
+
+state 292
+
+   86 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . ')'
+
+    ')'  shift, and go to state 295
+
+
+state 293
+
+   90 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . ')'
+
+    ')'  shift, and go to state 296
+
+
+state 294
+
+   82 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node . ')'
+
+    ')'  shift, and go to state 297
+
+
+state 295
+
+   86 varying_store: '(' STORE_VARYING CONST_INDEX COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 86 (varying_store)
+
+
+state 296
+
+   90 temp_store: '(' STORE_TEMP node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 90 (temp_store)
+
+
+state 297
+
+   82 virt_reg_def: '(' STORE_VIRT_REG reg_type IDENTIFIER COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node COMPONENT ':' node ')' .
+
+    $default  reduce using rule 82 (virt_reg_def)
