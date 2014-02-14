@@ -1,78 +1,16 @@
-GLSL optimizer
-==============
+Lima Shader Compiler
+====================
 
-A C++ library that takes GLSL shaders, does some GPU-independent optimizations on them
-and outputs GLSL back. Optimizations are function inlining, dead code removal, copy propagation,
-constant folding, constant propagation, arithmetic optimizations and so on.
+This is a project to integrate the compiler backends that were being developed in
+[open-gpu-tools](https://gitorious.org/open-gpu-tools/cwabbotts-open-gpu-tools) with the
+Mesa shader compiler. Eventually, there will be both a near drop-in replacement for the
+[Mali offline shader compiler](http://malideveloper.arm.com/develop-for-mali/tools/analysis-debug/mali-gpu-offline-shader-compiler/)
+(for Mali-200 and Mali-400 only for now...) and a LD_PRELOAD'able library that can
+replace the internal shader compiler in the Mali drivers for ES 2.0 apps, for testing and
+comparison purposes.
 
-Apparently quite a few mobile platforms are pretty bad at optimizing GLSL shaders; and
-unfortunately they *also* lack offline shader compilers. So using a GLSL optimizer offline
-before can make the shader run much faster on a platform like that. See performance numbers
-in [this blog post](http://aras-p.info/blog/2010/09/29/glsl-optimizer/).
-
-Almost all actual code is [Mesa 3D's GLSL](http://cgit.freedesktop.org/mesa/mesa/log/)
-compiler; all this library does is spits out optimized GLSL back, and adds GLES type precision
-handling to the optimizer.
-
-This GLSL optimizer is made for [Unity's](http://unity3d.com/) purposes and is built-in
-starting with Unity 3.0.
-
-GLSL Optimizer is licensed according to the terms of the MIT license.
-
-See badly maintained [change log](Changelog.md).
-
-
-Usage
------
-
-Visual Studio 2010 (Windows, x86/x64) and Xcode 5+ (Mac, i386) project files for a static
-library are provided in `projects/vs2010/glsl_optimizer.sln` and `projects/xcode5/glsl_optimizer_lib`
-respectively.
-
-> Note: only the VS and Xcode project files are maintained and should work at any time.
-> There's also a cmake and gyp build system for Linux et al., and some stuff in contrib folder -
-> all that may or might not work.
-
-For Linux you can use cmake. Just type "cmake . && make" in the root directory.
-This will build the optimizer library and some executable binaries.
-
-Interface for the library is `src/glsl/glsl_optimizer.h`. General usage is:
- 
-	ctx = glslopt_initialize();
-	for (lots of shaders) {
-		shader = glslopt_optimize (ctx, shaderType, shaderSource, options);
-		if (glslopt_get_status (shader)) {
-			newSource = glslopt_get_output (shader);
-		} else {
-			errorLog = glslopt_get_log (shader);
-		}
-		glslopt_shader_delete (shader);
-	}
-	glslopt_cleanup (ctx);
-
-
-Tests
------
-
-There's a testing suite for catching regressions, see `tests` folder. In VS, build
-and run `glsl_optimizer_tests` project; in Xcode use `projects/xcode5/glsl_optimizer_tests`
-project. The test executable requires path to the `tests` folder as an argument.
-
-Each test comes as three text files; input, expected IR dump and expected optimized
-GLSL dump.
-
-If you're making changes to the project and want pull requests accepted easier, I'd
-appreciate if there would be no test suite regressions. If you are implementing a
-feature, it would be cool to add tests to cover it as well!
-
-
-Notes
------
-
-* GLSL versions 1.10 and 1.20 are supported. 1.10 is the default, use #version 120 to specify 
-1.20.
-* GLSL ES versions 1.00 and 3.00 are supported.
-
+In order to get a standalone version of Mesa's GLSL IR, this is based on the
+[glsl-optimizer project](https://github.com/aras-p/glsl-optimizer).
 
 Dev Notes
 ---------
