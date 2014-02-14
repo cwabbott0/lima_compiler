@@ -49,10 +49,10 @@ $(STANDALONE_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(STANDALONE_NAME): $(OBJECTS) $(STANDALONE_OBJECTS)
-	$(CC) -g -o $@ $^
+	$(CC) -lm -g -o $@ $^
 
 $(LIB_NAME): $(OBJECTS)
-	$(CC) -shared -g -o $@ $^
+	$(CC) -shared -lm -g -o $@ $^
 
 
 
