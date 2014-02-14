@@ -12,6 +12,25 @@ comparison purposes.
 In order to get a standalone version of Mesa's GLSL IR, this is based on the
 [glsl-optimizer project](https://github.com/aras-p/glsl-optimizer).
 
+Building
+--------
+
+### Linux and OSX
+
+to build the stanalone compiler, in the root directory run:
+
+    make standalone
+
+and for the LD_PRELOAD'able library:
+
+    make lib
+
+or just run "make" to build both.
+
+## Windows
+
+Have fun.
+
 Dev Notes
 ---------
 
