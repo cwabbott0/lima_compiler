@@ -25,7 +25,8 @@ and for the LD_PRELOAD'able library:
 
     make lib
 
-or just run "make" to build both.
+or just run "make" to build both. The standalone compiler will be at src/lima/limasc,
+and the library will be at src/lima/liblimasc.so.
 
 ## Windows
 
