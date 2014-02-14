@@ -46,7 +46,6 @@ public:
    ir_function_inlining_visitor()
    {
       progress = false;
-	  current_function = NULL;
    }
 
    virtual ~ir_function_inlining_visitor()
@@ -60,20 +59,7 @@ public:
    virtual ir_visitor_status visit_enter(ir_texture *);
    virtual ir_visitor_status visit_enter(ir_swizzle *);
 
-   virtual ir_visitor_status visit_enter(ir_function_signature *sig)
-   {
-	   this->current_function = sig;
-	   return ir_hierarchical_visitor::visit_enter(sig);
-   }
-   virtual ir_visitor_status visit_leave(ir_function_signature *sig)
-   {
-	   this->current_function = NULL;
-	   return ir_hierarchical_visitor::visit_leave(sig);
-   }
-
-   ir_function_signature* current_function;
    bool progress;
-
 };
 
 } /* unnamed namespace */
@@ -130,7 +116,6 @@ ir_call::generate_inline(ir_instruction *next_ir)
     * and set up the mapping of real function body variables to ours.
     */
    i = 0;
-   glsl_precision prec_params_max = glsl_precision_undefined;
    foreach_two_lists(formal_node, &this->callee->parameters,
                      actual_node, &this->actual_parameters) {
       ir_variable *sig_param = (ir_variable *) formal_node;
@@ -147,11 +132,6 @@ ir_call::generate_inline(ir_instruction *next_ir)
       } else {
 	 parameters[i] = sig_param->clone(ctx, ht);
 	 parameters[i]->data.mode = ir_var_auto;
-
-     parameters[i]->data.precision = (glsl_precision)parameters[i]->data.precision;
-     if (parameters[i]->data.precision == glsl_precision_undefined)
-        parameters[i]->data.precision = param->get_precision();
-     prec_params_max = higher_precision (prec_params_max, (glsl_precision)parameters[i]->data.precision);
 
 	 /* Remove the read-only decoration becuase we're going to write
 	  * directly to this variable.  If the cloned variable is left
@@ -175,7 +155,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
 
       ++i;
    }
-	
+
    exec_list new_instructions;
 
    /* Generate the inlined body of the function to a new list */

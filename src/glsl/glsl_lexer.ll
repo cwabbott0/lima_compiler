@@ -28,12 +28,6 @@
 #include "glsl_parser_extras.h"
 #include "glsl_parser.h"
 
-#if defined(_MSC_VER)
-#	pragma warning(disable: 4065) // warning C4065: switch statement contains 'default' but no 'case' labels
-#	pragma warning(disable: 4244) // warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-#	pragma warning(disable: 4267) // warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data
-#endif // defined(_MSC_VER)
-
 static int classify_identifier(struct _mesa_glsl_parse_state *, const char *);
 
 #ifdef _MSC_VER
@@ -163,7 +157,7 @@ literal_integer(char *text, int len, struct _mesa_glsl_parse_state *state,
 DEC_INT		[1-9][0-9]*
 HEX_INT		0[xX][0-9a-fA-F]+
 OCT_INT		0[0-7]*
-INT_T	({DEC_INT}|{HEX_INT}|{OCT_INT})
+INT		({DEC_INT}|{HEX_INT}|{OCT_INT})
 SPC		[ \t]*
 SPCP		[ \t]+
 HASH		^{SPC}#{SPC}
@@ -175,7 +169,7 @@ HASH		^{SPC}#{SPC}
 ^[ \t]*#[ \t]*$			;
 ^[ \t]*#[ \t]*version		{ BEGIN PP; return VERSION_TOK; }
 ^[ \t]*#[ \t]*extension		{ BEGIN PP; return EXTENSION; }
-{HASH}line{SPCP}{INT_T}{SPCP}{INT_T}{SPC}$ {
+{HASH}line{SPCP}{INT}{SPCP}{INT}{SPC}$ {
 				   /* Eat characters until the first digit is
 				    * encountered
 				    */
@@ -190,7 +184,7 @@ HASH		^{SPC}#{SPC}
 				   yylineno = strtol(ptr, &ptr, 0) - 1;
 				   yylloc->source = strtol(ptr, NULL, 0);
 				}
-{HASH}line{SPCP}{INT_T}{SPC}$	{
+{HASH}line{SPCP}{INT}{SPC}$	{
 				   /* Eat characters until the first digit is
 				    * encountered
 				    */
@@ -355,7 +349,8 @@ layout		{
 		      || yyextra->ARB_explicit_attrib_location_enable
 		      || yyextra->ARB_uniform_buffer_object_enable
 		      || yyextra->ARB_fragment_coord_conventions_enable
-                      || yyextra->ARB_shading_language_420pack_enable) {
+                      || yyextra->ARB_shading_language_420pack_enable
+                      || yyextra->ARB_compute_shader_enable) {
 		      return LAYOUT_TOK;
 		   } else {
 		      yylval->identifier = strdup(yytext);

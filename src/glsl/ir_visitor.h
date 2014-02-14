@@ -62,9 +62,10 @@ public:
    virtual void visit(class ir_discard *) = 0;
    virtual void visit(class ir_if *) = 0;
    virtual void visit(class ir_loop *) = 0;
+   virtual void visit(class ir_phi_if *) = 0;
+   virtual void visit(class ir_phi_loop_begin *) = 0;
+   virtual void visit(class ir_phi_loop_end *) = 0;
    virtual void visit(class ir_loop_jump *) = 0;
-   virtual void visit(class ir_precision_statement *) = 0;
-   virtual void visit(class ir_typedecl_statement *) = 0;
    virtual void visit(class ir_emit_vertex *) = 0;
    virtual void visit(class ir_end_primitive *) = 0;
    /*@}*/
@@ -85,6 +86,9 @@ public:
    virtual void visit(class ir_assignment *) {}
    virtual void visit(class ir_constant *) {}
    virtual void visit(class ir_call *) {}
+   virtual void visit(class ir_phi_if *) {}
+   virtual void visit(class ir_phi_loop_begin *) {}
+   virtual void visit(class ir_phi_loop_end *) {}
    virtual void visit(class ir_emit_vertex *) {}
    virtual void visit(class ir_end_primitive *) {}
 };

@@ -87,9 +87,23 @@ ir_loop::accept(ir_hierarchical_visitor *v)
    if (s != visit_continue)
       return (s == visit_continue_with_parent) ? visit_continue : s;
 
-   s = visit_list_elements(v, &this->body_instructions);
-   if (s == visit_stop)
-      return s;
+   if (s != visit_continue_with_parent) {
+      s = visit_list_elements(v, &this->begin_phi_nodes, false);
+      if (s == visit_stop)
+	 return s;
+   }
+
+   if (s != visit_continue_with_parent) {
+      s = visit_list_elements(v, &this->body_instructions);
+      if (s == visit_stop)
+	 return s;
+   }
+
+   if (s != visit_continue_with_parent) {
+      s = visit_list_elements(v, &this->end_phi_nodes, false);
+      if (s == visit_stop)
+	 return s;
+   }
 
    return v->visit_leave(this);
 }
@@ -169,6 +183,18 @@ ir_texture::accept(ir_hierarchical_visitor *v)
 
    if (this->coordinate) {
       s = this->coordinate->accept(v);
+      if (s != visit_continue)
+	 return (s == visit_continue_with_parent) ? visit_continue : s;
+   }
+
+   if (this->projector) {
+      s = this->projector->accept(v);
+      if (s != visit_continue)
+	 return (s == visit_continue_with_parent) ? visit_continue : s;
+   }
+
+   if (this->shadow_comparitor) {
+      s = this->shadow_comparitor->accept(v);
       if (s != visit_continue)
 	 return (s == visit_continue_with_parent) ? visit_continue : s;
    }
@@ -387,26 +413,50 @@ ir_if::accept(ir_hierarchical_visitor *v)
 	 return s;
    }
 
+   if (s != visit_continue_with_parent) {
+      s = visit_list_elements(v, &this->phi_nodes, false);
+      if (s == visit_stop)
+	 return s;
+   }
+
    return v->visit_leave(this);
 }
 
+
 ir_visitor_status
-ir_precision_statement::accept(ir_hierarchical_visitor *v)
+ir_phi::accept(ir_hierarchical_visitor *v)
 {
    return v->visit(this);
 }
 
+
 ir_visitor_status
-ir_typedecl_statement::accept(ir_hierarchical_visitor *v)
+ir_phi_if::accept(ir_hierarchical_visitor *v)
 {
    return v->visit(this);
 }
+
+
+ir_visitor_status
+ir_phi_loop_begin::accept(ir_hierarchical_visitor *v)
+{
+   return v->visit(this);
+}
+
+
+ir_visitor_status
+ir_phi_loop_end::accept(ir_hierarchical_visitor *v)
+{
+   return v->visit(this);
+}
+
 
 ir_visitor_status
 ir_emit_vertex::accept(ir_hierarchical_visitor *v)
 {
    return v->visit(this);
 }
+
 
 ir_visitor_status
 ir_end_primitive::accept(ir_hierarchical_visitor *v)

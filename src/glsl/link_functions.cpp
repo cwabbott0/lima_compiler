@@ -119,7 +119,7 @@ public:
       if ((linked_sig == NULL)
 	  || ((linked_sig != NULL)
 	      && (linked_sig->is_builtin() != ir->use_builtin))) {
-	 linked_sig = new(linked) ir_function_signature(callee->return_type, callee->precision);
+	 linked_sig = new(linked) ir_function_signature(callee->return_type);
 	 f->add_signature(linked_sig);
       }
 

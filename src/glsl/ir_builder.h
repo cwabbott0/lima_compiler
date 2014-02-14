@@ -124,6 +124,7 @@ ir_assignment *assign(deref lhs, operand rhs);
 ir_assignment *assign(deref lhs, operand rhs, int writemask);
 ir_assignment *assign(deref lhs, operand rhs, operand condition);
 ir_assignment *assign(deref lhs, operand rhs, operand condition, int writemask);
+ir_assignment *ssa_assign(const char *name, operand rhs);
 
 ir_return *ret(operand retval);
 
@@ -206,6 +207,7 @@ ir_swizzle *swizzle_x(operand a);
 ir_swizzle *swizzle_y(operand a);
 ir_swizzle *swizzle_z(operand a);
 ir_swizzle *swizzle_w(operand a);
+ir_swizzle *swizzle_component(operand a, int component);
 ir_swizzle *swizzle_xy(operand a);
 ir_swizzle *swizzle_xyz(operand a);
 ir_swizzle *swizzle_xyzw(operand a);

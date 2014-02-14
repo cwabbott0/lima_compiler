@@ -90,15 +90,15 @@ ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(void *mem_
    /* Store the index to a temporary to avoid reusing its tree. */
    index = new(base_ir) ir_variable(glsl_type::int_type,
 				    "vec_index_tmp_i",
-				    ir_var_temporary, glsl_precision_undefined);
-	list.push_tail(index);
+				    ir_var_temporary);
+   list.push_tail(index);
    deref = new(base_ir) ir_dereference_variable(index);
    assign = new(base_ir) ir_assignment(deref, orig_index, NULL);
    list.push_tail(assign);
 
    /* Store the value inside a temp, thus avoiding matrixes duplication */
    value = new(base_ir) ir_variable(orig_vector->type, "vec_value_tmp",
-                                    ir_var_temporary, orig_vector->get_precision());
+                                    ir_var_temporary);
    list.push_tail(value);
    deref_value = new(base_ir) ir_dereference_variable(value);
    value_assign = new(base_ir) ir_assignment(deref_value, orig_vector);
@@ -106,7 +106,7 @@ ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(void *mem_
 
    /* Temporary where we store whichever value we swizzle out. */
    var = new(base_ir) ir_variable(type, "vec_index_tmp_v",
-				  ir_var_temporary, orig_vector->get_precision());
+				  ir_var_temporary);
    list.push_tail(var);
 
    /* Generate a single comparison condition "mask" for all of the components
@@ -118,7 +118,7 @@ ir_vec_index_to_cond_assign_visitor::convert_vec_index_to_cond_assign(void *mem_
 			  mem_ctx);
 
    /* Generate a conditional move of each vector element to the temp. */
-   for (i = 0; i < (int)orig_vector->type->vector_elements; i++) {
+   for (i = 0; i < orig_vector->type->vector_elements; i++) {
       ir_rvalue *condition_swizzle =
          new(base_ir) ir_swizzle(cond_deref->clone(mem_ctx, NULL),
                                  i, 0, 0, 0, 1);
@@ -185,7 +185,6 @@ ir_vec_index_to_cond_assign_visitor::visit_enter(ir_swizzle *ir)
 ir_visitor_status
 ir_vec_index_to_cond_assign_visitor::visit_leave(ir_assignment *ir)
 {
-
    ir->rhs = convert_vector_extract_to_cond_assign(ir->rhs);
 
    if (ir->condition) {

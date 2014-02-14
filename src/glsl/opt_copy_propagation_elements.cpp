@@ -304,13 +304,10 @@ ir_copy_propagation_elements_visitor::visit_enter(ir_call *ir)
    }
 
    /* Since we're unlinked, we don't (necessarily) know the side effects of
-    * this call.  So kill all copies. Except if it's a built-in; we know
-	* they are side effect free.
+    * this call.  So kill all copies.
     */
-   if (!ir->callee->is_builtin()) {
-      acp->make_empty();
-      this->killed_all = true;
-   }
+   acp->make_empty();
+   this->killed_all = true;
 
    return visit_continue_with_parent;
 }
@@ -468,9 +465,6 @@ ir_copy_propagation_elements_visitor::add_copy(ir_assignment *ir)
       if (ir->write_mask & (1 << i))
 	 swizzle[i] = orig_swizzle[j++];
    }
-	
-   if (lhs->var->data.precision != rhs->var->data.precision && lhs->var->data.precision!=glsl_precision_undefined && rhs->var->data.precision!=glsl_precision_undefined)
-      return;
 
    int write_mask = ir->write_mask;
    if (lhs->var == rhs->var) {

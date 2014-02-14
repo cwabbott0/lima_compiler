@@ -76,7 +76,8 @@
 #include "ir_rvalue_visitor.h"
 
 extern "C" {
-#include "standalone_scaffolding.h"
+#include "main/shaderobj.h"
+#include "main/enums.h"
 }
 
 void linker_error(gl_shader_program *, const char *, ...);
@@ -491,7 +492,7 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
     * GLSL ES 3.00 is similar to GLSL 1.40--failing to write to gl_Position is
     * not an error.
     */
-   if (prog->Version < (prog->IsES ? 300U : 140U)) {
+   if (prog->Version < (prog->IsES ? 300 : 140)) {
       find_assignment_visitor find("gl_Position");
       find.run(shader->ir);
       if (!find.variable_found()) {
@@ -965,11 +966,6 @@ move_non_declarations(exec_list *instructions, exec_node *last,
 
       if (inst->as_function())
 	 continue;
-	   
-      if (inst->ir_type == ir_type_precision)
-         continue;
-      if (inst->ir_type == ir_type_typedecl)
-         continue;
 
       ir_variable *var = inst->as_variable();
       if ((var != NULL) && (var->data.mode != ir_var_temporary))
@@ -1291,6 +1287,69 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
    prog->Geom.VerticesOut = linked_shader->Geom.VerticesOut;
 }
 
+
+/**
+ * Perform cross-validation of compute shader local_size_{x,y,z} layout
+ * qualifiers for the attached compute shaders, and propagate them to the
+ * linked CS and linked shader program.
+ */
+static void
+link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
+                                struct gl_shader *linked_shader,
+                                struct gl_shader **shader_list,
+                                unsigned num_shaders)
+{
+   for (int i = 0; i < 3; i++)
+      linked_shader->Comp.LocalSize[i] = 0;
+
+   /* This function is called for all shader stages, but it only has an effect
+    * for compute shaders.
+    */
+   if (linked_shader->Stage != MESA_SHADER_COMPUTE)
+      return;
+
+   /* From the ARB_compute_shader spec, in the section describing local size
+    * declarations:
+    *
+    *     If multiple compute shaders attached to a single program object
+    *     declare local work-group size, the declarations must be identical;
+    *     otherwise a link-time error results. Furthermore, if a program
+    *     object contains any compute shaders, at least one must contain an
+    *     input layout qualifier specifying the local work sizes of the
+    *     program, or a link-time error will occur.
+    */
+   for (unsigned sh = 0; sh < num_shaders; sh++) {
+      struct gl_shader *shader = shader_list[sh];
+
+      if (shader->Comp.LocalSize[0] != 0) {
+         if (linked_shader->Comp.LocalSize[0] != 0) {
+            for (int i = 0; i < 3; i++) {
+               if (linked_shader->Comp.LocalSize[i] !=
+                   shader->Comp.LocalSize[i]) {
+                  linker_error(prog, "compute shader defined with conflicting "
+                               "local sizes\n");
+                  return;
+               }
+            }
+         }
+         for (int i = 0; i < 3; i++)
+            linked_shader->Comp.LocalSize[i] = shader->Comp.LocalSize[i];
+      }
+   }
+
+   /* Just do the intrastage -> interstage propagation right now,
+    * since we already know we're in the right type of shader program
+    * for doing it.
+    */
+   if (linked_shader->Comp.LocalSize[0] == 0) {
+      linker_error(prog, "compute shader didn't declare local size\n");
+      return;
+   }
+   for (int i = 0; i < 3; i++)
+      prog->Comp.LocalSize[i] = linked_shader->Comp.LocalSize[i];
+}
+
+
 /**
  * Combine a group of shaders for a single stage to generate a linked shader
  *
@@ -1298,7 +1357,7 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
  * If this function is supplied a single shader, it is cloned, and the new
  * shader is returned.
  */
-struct gl_shader *
+static struct gl_shader *
 link_intrastage_shaders(void *mem_ctx,
 			struct gl_context *ctx,
 			struct gl_shader_program *prog,
@@ -1395,6 +1454,7 @@ link_intrastage_shaders(void *mem_ctx,
    ralloc_steal(linked, linked->UniformBlocks);
 
    link_gs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders);
+   link_cs_input_layout_qualifiers(prog, linked, shader_list, num_shaders);
 
    populate_symbol_table(linked);
 
@@ -1403,8 +1463,8 @@ link_intrastage_shaders(void *mem_ctx,
     */
    ir_function_signature *const main_sig = get_main_function_signature(linked);
 
-   /* Move any instructions other than variable declarations, function
-    * declarations or precision statements into main.
+   /* Move any instructions other than variable declarations or function
+    * declarations into main.
     */
    exec_node *insertion_point =
       move_non_declarations(linked->ir, (exec_node *) &main_sig->body, false,
@@ -2017,7 +2077,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       min_version = MIN2(min_version, prog->Shaders[i]->Version);
       max_version = MAX2(max_version, prog->Shaders[i]->Version);
 
-      if ((!!prog->Shaders[i]->IsES) != is_es_prog) {
+      if (prog->Shaders[i]->IsES != is_es_prog) {
 	 linker_error(prog, "all shaders must use same shading "
 		      "language version\n");
 	 goto done;
@@ -2047,6 +2107,13 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       linker_error(prog, "Geometry shader must be linked with "
 		   "vertex shader\n");
       goto done;
+   }
+
+   /* Compute shaders have additional restrictions. */
+   if (num_shaders[MESA_SHADER_COMPUTE] > 0 &&
+       num_shaders[MESA_SHADER_COMPUTE] != prog->NumShaders) {
+      linker_error(prog, "Compute shaders may not be linked with any other "
+                   "type of shader\n");
    }
 
    for (unsigned int i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -2102,7 +2169,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
 
    unsigned prev;
 
-   for (prev = 0; prev < MESA_SHADER_STAGES; prev++) {
+   for (prev = 0; prev <= MESA_SHADER_FRAGMENT; prev++) {
       if (prog->_LinkedShaders[prev] != NULL)
          break;
    }
@@ -2110,7 +2177,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    /* Validate the inputs of each stage with the output of the preceding
     * stage.
     */
-   for (unsigned i = prev + 1; i < MESA_SHADER_STAGES; i++) {
+   for (unsigned i = prev + 1; i <= MESA_SHADER_FRAGMENT; i++) {
       if (prog->_LinkedShaders[i] == NULL)
          continue;
 
@@ -2145,7 +2212,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
     *
     * This rule also applies to GLSL ES 3.00.
     */
-   if (max_version >= (is_es_prog ? 300U : 130U)) {
+   if (max_version >= (is_es_prog ? 300 : 130)) {
       struct gl_shader *sh = prog->_LinkedShaders[MESA_SHADER_FRAGMENT];
       if (sh) {
 	 lower_discard_flow(sh->ir);
@@ -2205,7 +2272,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
    }
 
    unsigned first;
-   for (first = 0; first < MESA_SHADER_STAGES; first++) {
+   for (first = 0; first <= MESA_SHADER_FRAGMENT; first++) {
       if (prog->_LinkedShaders[first] != NULL)
 	 break;
    }
@@ -2237,7 +2304,7 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
     * eliminated if they are (transitively) not used in a later stage.
     */
    int last, next;
-   for (last = MESA_SHADER_STAGES-1; last >= 0; last--) {
+   for (last = MESA_SHADER_FRAGMENT; last >= 0; last--) {
       if (prog->_LinkedShaders[last] != NULL)
          break;
    }

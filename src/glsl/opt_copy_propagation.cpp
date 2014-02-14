@@ -197,12 +197,9 @@ ir_copy_propagation_visitor::visit_enter(ir_call *ir)
 
    /* Since we're unlinked, we don't (necessarily) know the side effects of
     * this call.  So kill all copies.
-	* For any built-in functions, do not do this; they are side effect-free.
     */
-   if (!ir->callee->is_builtin()) {
-      acp->make_empty();
-      this->killed_all = true;
-   }
+   acp->make_empty();
+   this->killed_all = true;
 
    return visit_continue_with_parent;
 }
@@ -332,10 +329,8 @@ ir_copy_propagation_visitor::add_copy(ir_assignment *ir)
 	 ir->condition = new(ralloc_parent(ir)) ir_constant(false);
 	 this->progress = true;
       } else {
-		  if (lhs_var->data.precision == rhs_var->data.precision || lhs_var->data.precision==glsl_precision_undefined || rhs_var->data.precision==glsl_precision_undefined) {
-			entry = new(this->mem_ctx) acp_entry(lhs_var, rhs_var);
-			this->acp->push_tail(entry);
-		  }
+	 entry = new(this->mem_ctx) acp_entry(lhs_var, rhs_var);
+	 this->acp->push_tail(entry);
       }
    }
 }

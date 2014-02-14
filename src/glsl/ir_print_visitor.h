@@ -69,8 +69,9 @@ public:
    virtual void visit(ir_if *);
    virtual void visit(ir_loop *);
    virtual void visit(ir_loop_jump *);
-   virtual void visit(ir_precision_statement *);
-   virtual void visit(ir_typedecl_statement *);
+   virtual void visit(ir_phi_if *);
+   virtual void visit(ir_phi_loop_begin *);
+   virtual void visit(ir_phi_loop_end *);
    virtual void visit(ir_emit_vertex *);
    virtual void visit(ir_end_primitive *);
    /*@}*/
@@ -83,6 +84,17 @@ private:
     * fine until we try to print it, when we really need a unique one.
     */
    const char *unique_name(ir_variable *var);
+
+   /**
+    * Fetch/generate a unique name for ir_loop_jump.
+    *
+    * ir_phi_loop_begin and ir_phi_loop_end refer to specific ir_loop_jump's, so
+    * we need a name to know which is which in the printout, even though there
+    * is no name associated with the jump in the IR.
+    */
+   const char *unique_name(ir_loop_jump *jump);
+
+   void print_phi_jump_src(ir_phi_jump_src *src);
 
    /** A mapping from ir_variable * -> unique printable names. */
    hash_table *printable_names;

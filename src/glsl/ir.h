@@ -35,7 +35,6 @@
 #include "ir_visitor.h"
 #include "ir_hierarchical_visitor.h"
 #include "main/mtypes.h"
-#include "main/macros.h"
 
 #ifdef __cplusplus
 
@@ -79,11 +78,12 @@ enum ir_node_type {
    ir_type_if,
    ir_type_loop,
    ir_type_loop_jump,
+   ir_type_phi_if,
+   ir_type_phi_loop_begin,
+   ir_type_phi_loop_end,
    ir_type_return,
    ir_type_swizzle,
    ir_type_texture,
-   ir_type_precision,
-   ir_type_typedecl,
    ir_type_emit_vertex,
    ir_type_end_primitive,
    ir_type_max /**< maximum ir_type enum number, for validation */
@@ -141,6 +141,11 @@ public:
    virtual class ir_constant *          as_constant()         { return NULL; }
    virtual class ir_discard *           as_discard()          { return NULL; }
    virtual class ir_jump *              as_jump()             { return NULL; }
+   virtual class ir_loop_jump *         as_loop_jump()        { return NULL; }
+   virtual class ir_phi *               as_phi()              { return NULL; }
+   virtual class ir_phi_if *            as_phi_if()           { return NULL; }
+   virtual class ir_phi_loop_begin *    as_phi_loop_begin()   { return NULL; }
+   virtual class ir_phi_loop_end *      as_phi_loop_end()     { return NULL; }
    /*@}*/
 
    /**
@@ -214,9 +219,6 @@ public:
       return NULL;
    }
 
-   glsl_precision get_precision() const { return precision; }
-   void set_precision (glsl_precision prec) { precision = prec; }
-
    /**
     * Determine if an r-value has the value zero
     *
@@ -279,9 +281,7 @@ public:
    static ir_rvalue *error_value(void *mem_ctx);
 
 protected:
-   ir_rvalue(glsl_precision precision);
-
-   glsl_precision precision;
+   ir_rvalue();
 };
 
 
@@ -296,10 +296,11 @@ enum ir_variable_mode {
    ir_var_function_in,
    ir_var_function_out,
    ir_var_function_inout,
-   ir_var_const_in,	/**< "in" param that must be a constant expression */
-   ir_var_system_value, /**< Ex: front-face, instance-id, etc. */
-   ir_var_temporary,	/**< Temporary variable generated during compilation. */
-   ir_var_mode_count	/**< Number of variable modes */
+   ir_var_const_in,	 /**< "in" param that must be a constant expression */
+   ir_var_system_value,  /**< Ex: front-face, instance-id, etc. */
+   ir_var_temporary,	 /**< Temporary variable generated during compilation. */
+   ir_var_temporary_ssa, /**< Temporary variable with only one definition. */
+   ir_var_mode_count	 /**< Number of variable modes */
 };
 
 /**
@@ -378,7 +379,7 @@ const char *interpolation_string(unsigned interpolation);
 
 class ir_variable : public ir_instruction {
 public:
-   ir_variable(const struct glsl_type *, const char *, ir_variable_mode, glsl_precision);
+   ir_variable(const struct glsl_type *, const char *, ir_variable_mode);
 
    virtual ir_variable *clone(void *mem_ctx, struct hash_table *ht) const;
 
@@ -479,7 +480,7 @@ public:
    void reinit_interface_type(const struct glsl_type *type)
    {
       if (this->max_ifc_array_access != NULL) {
-#ifndef _NDEBUG
+#ifndef NDEBUG
          /* Redeclaring gl_PerVertex is only allowed if none of the built-ins
           * it defines have been accessed yet; so it's safe to throw away the
           * old max_ifc_array_access pointer, since all of its values are
@@ -579,8 +580,6 @@ public:
        * \sa ir_variable_interpolation
        */
       unsigned interpolation:2;
-
-      unsigned precision:2;
 
       /**
        * \name ARB_fragment_coord_conventions
@@ -745,6 +744,16 @@ public:
     */
    ir_constant *constant_initializer;
 
+   /**
+    * Assignment, call, or phi node which creates this variable. SSA variables
+    * are declared in the assignment/phi node/return where they are defined,
+    * unlike everything else where the lhs defereference always points to an
+    * ir_variable somewhere else in the ir tree. Storing the parent assignment
+    * here allows us to more easily determine the def-use chains during
+    * optimizations.
+    */
+   ir_instruction *ssa_owner;
+
 private:
    /**
     * For variables that are in an interface block or are an instance of an
@@ -771,7 +780,7 @@ class ir_function_signature : public ir_instruction {
     * an ir_function.
     */
 public:
-   ir_function_signature(const glsl_type *return_type, glsl_precision precision,
+   ir_function_signature(const glsl_type *return_type,
                          builtin_available_predicate builtin_avail = NULL);
 
    virtual ir_function_signature *clone(void *mem_ctx,
@@ -831,10 +840,10 @@ public:
 
    /**
     * Function return type.
+    *
+    * \note This discards the optional precision qualifier.
     */
    const struct glsl_type *return_type;
-
-   glsl_precision precision;
 
    /**
     * List of ir_variable of function parameters.
@@ -996,6 +1005,8 @@ public:
    exec_list  then_instructions;
    /** List of ir_instruction for the body of the else branch */
    exec_list  else_instructions;
+   /** List of phi nodes at the end of the if */
+   exec_list phi_nodes;
 };
 
 
@@ -1022,6 +1033,143 @@ public:
 
    /** List of ir_instruction that make up the body of the loop. */
    exec_list body_instructions;
+
+   /** List of phi nodes at the beginning of the body of the loop. */
+   exec_list begin_phi_nodes;
+   /** List of phi nodes immediately after the loop. */
+   exec_list end_phi_nodes;
+};
+
+/**
+ * Base class for instructions representing phi nodes
+ *
+ * There are three join points where phi nodes can occur:
+ * * after an if statement
+ * * at the beginning of a loop
+ * * after a loop
+ *
+ * Each of these points has an associated subclass of ir_phi with places to
+ * store the input variables corresponding to each predecessor basic block.
+ * Note that an input may be null, in which case the value coming from that
+ * basic block is undefined. A null input conveys important information about
+ * the original program before the conversion to SSA, and so it *cannot* be
+ * optimized away (see "Global Code Motion Global Value Numbering" by Click for
+ * details).
+ */
+
+
+class ir_phi : public ir_instruction {
+public:
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *) = 0;
+
+   virtual ir_phi *as_phi()
+   {
+      return this;
+   }
+
+   ir_variable *dest;
+
+protected:
+   ir_phi(ir_variable *dest) : dest(dest)
+   {
+   }
+};
+
+
+class ir_phi_if : public ir_phi {
+public:
+   ir_phi_if(ir_variable *dest, ir_variable *if_src, ir_variable *else_src);
+
+   virtual ir_phi_if *clone(void *mem_ctx, hash_table *ht) const;
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+
+   virtual ir_phi_if *as_phi_if()
+   {
+      return this;
+   }
+
+   /** the value dest takes if the if branch is taken */
+   ir_variable *if_src;
+   /** the value dest takes if the if branch is not taken */
+   ir_variable *else_src;
+};
+
+
+/**
+ * Represents a phi node source from a loop jump instruction (break or continue)
+ */
+
+struct ir_phi_jump_src : public exec_node {
+   ir_loop_jump *jump;
+   ir_variable *src;
+};
+
+
+class ir_phi_loop_begin : public ir_phi {
+public:
+   ir_phi_loop_begin(ir_variable *dest, ir_variable *enter_src, ir_variable *repeat_src);
+
+   virtual ir_phi_loop_begin *clone(void *mem_ctx, hash_table *ht) const;
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+
+   virtual ir_phi_loop_begin *as_phi_loop_begin()
+   {
+      return this;
+   }
+
+   /** the value dest takes on the first iteration of the loop */
+   ir_variable *enter_src;
+
+   /**
+    * The value dest takes after reaching the end of the loop and going back to
+    * the beginning.
+    */
+   ir_variable *repeat_src;
+
+   /**
+    * A list of ir_phi_jump_src structures representing the value dest will take
+    * after each continue.
+    */
+   exec_list continue_srcs;
+};
+
+
+class ir_phi_loop_end : public ir_phi {
+public:
+   ir_phi_loop_end(ir_variable *dest);
+
+   virtual ir_phi_loop_end *clone(void *mem_ctx, hash_table *ht) const;
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+
+   virtual ir_phi_loop_end *as_phi_loop_end()
+   {
+      return this;
+   }
+
+   /**
+    * A list of ir_phi_jump_src structures representing the value dest will take
+    * after each break.
+    */
+   exec_list break_srcs;
 };
 
 
@@ -1123,7 +1271,6 @@ enum ir_expression_operation {
    ir_unop_rcp,
    ir_unop_rsq,
    ir_unop_sqrt,
-   ir_unop_normalize,
    ir_unop_exp,         /**< Log base e on gentype */
    ir_unop_log,	        /**< Natural log on gentype */
    ir_unop_exp2,
@@ -1344,7 +1491,6 @@ enum ir_expression_operation {
    ir_triop_fma,
    /*@}*/
 
-   ir_triop_clamp,
    ir_triop_lrp,
 
    /**
@@ -1629,6 +1775,11 @@ public:
 
    virtual ir_loop_jump *clone(void *mem_ctx, struct hash_table *) const;
 
+   virtual ir_loop_jump *as_loop_jump()
+   {
+      return this;
+   }
+
    virtual void accept(ir_visitor *v)
    {
       v->visit(this);
@@ -1711,15 +1862,17 @@ enum ir_texture_opcode {
  * appear as:
  *
  *                                    Texel offset (0 or an expression)
- *                                    |
- *                                    v
- * (tex <type> <sampler> <coordinate> 0)
- * (txb <type> <sampler> <coordinate> 0 <bias>)
- * (txl <type> <sampler> <coordinate> 0 <lod>)
- * (txd <type> <sampler> <coordinate> 0 (dPdx dPdy))
- * (txf <type> <sampler> <coordinate> 0 <lod>)
+ *                                    | Projection divisor
+ *                                    | |  Shadow comparitor
+ *                                    | |  |
+ *                                    v v  v
+ * (tex <type> <sampler> <coordinate> 0 1 ( ))
+ * (txb <type> <sampler> <coordinate> 0 1 ( ) <bias>)
+ * (txl <type> <sampler> <coordinate> 0 1 ( ) <lod>)
+ * (txd <type> <sampler> <coordinate> 0 1 ( ) (dPdx dPdy))
+ * (txf <type> <sampler> <coordinate> 0       <lod>)
  * (txf_ms
- *      <type> <sampler> <coordinate>   <sample_index>)
+ *      <type> <sampler> <coordinate>         <sample_index>)
  * (txs <type> <sampler> <lod>)
  * (lod <type> <sampler> <coordinate>)
  * (tg4 <type> <sampler> <coordinate> <offset> <component>)
@@ -1728,8 +1881,8 @@ enum ir_texture_opcode {
 class ir_texture : public ir_rvalue {
 public:
    ir_texture(enum ir_texture_opcode op)
-      : ir_rvalue(glsl_precision_low), op(op), sampler(NULL), coordinate(NULL),
-        offset(NULL)
+      : op(op), sampler(NULL), coordinate(NULL), projector(NULL),
+        shadow_comparitor(NULL), offset(NULL)
    {
       this->ir_type = ir_type_texture;
       memset(&lod_info, 0, sizeof(lod_info));
@@ -1773,6 +1926,23 @@ public:
 
    /** Texture coordinate to sample */
    ir_rvalue *coordinate;
+
+   /**
+    * Value used for projective divide.
+    *
+    * If there is no projective divide (the common case), this will be
+    * \c NULL.  Optimization passes should check for this to point to a constant
+    * of 1.0 and replace that with \c NULL.
+    */
+   ir_rvalue *projector;
+
+   /**
+    * Coordinate used for comparison on shadow look-ups.
+    *
+    * If there is no shadow comparison, this will be \c NULL.  For the
+    * \c ir_txf opcode, this *must* be \c NULL.
+    */
+   ir_rvalue *shadow_comparitor;
 
    /** Texel offset. */
    ir_rvalue *offset;
@@ -1889,9 +2059,6 @@ public:
     * a matrix.
     */
   virtual void constant_referenced(struct hash_table *variable_context, ir_constant *&store, int &offset) const = 0;
-
-protected:
-  ir_dereference(glsl_precision precision) : ir_rvalue(precision) { }
 };
 
 
@@ -2191,53 +2358,6 @@ private:
    ir_constant(void);
 };
 
-
-class ir_precision_statement : public ir_instruction {
-public:
-   ir_precision_statement(const char *statement_to_store)
-   {
-	   ir_type = ir_type_precision;
-	   precision_statement = statement_to_store;
-   }
-
-   virtual ir_precision_statement *clone(void *mem_ctx, struct hash_table *) const;
-
-   virtual void accept(ir_visitor *v)
-   {
-      v->visit(this);
-   }
-
-   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
-
-   /**
-    * Precision statement
-    */
-   const char *precision_statement;
-};
-
-
-class ir_typedecl_statement : public ir_instruction {
-public:
-	ir_typedecl_statement(const glsl_type* type_decl)
-	{
-		this->ir_type = ir_type_typedecl;
-		this->type_decl = type_decl;
-	}
-	
-	virtual ir_typedecl_statement *clone(void *mem_ctx, struct hash_table *) const;
-	
-	virtual void accept(ir_visitor *v)
-	{
-		v->visit(this);
-	}
-	
-	virtual ir_visitor_status accept(ir_hierarchical_visitor *);
-	
-	const glsl_type* type_decl;
-};
-
-
-
 /*@}*/
 
 /**
@@ -2338,6 +2458,9 @@ _mesa_glsl_initialize_variables(exec_list *instructions,
 				struct _mesa_glsl_parse_state *state);
 
 extern void
+_mesa_glsl_initialize_functions(_mesa_glsl_parse_state *state);
+
+extern void
 _mesa_glsl_initialize_builtin_functions();
 
 extern ir_function_signature *
@@ -2346,6 +2469,9 @@ _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
 
 extern gl_shader *
 _mesa_glsl_get_builtin_function_shader(void);
+
+extern void
+_mesa_glsl_release_functions(void);
 
 extern void
 _mesa_glsl_release_builtin_functions(void);
@@ -2359,19 +2485,12 @@ extern void
 import_prototypes(const exec_list *source, exec_list *dest,
 		  struct glsl_symbol_table *symbols, void *mem_ctx);
 
+extern bool
+ir_has_call(ir_instruction *ir);
+
 extern void
 do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
                       gl_shader_stage shader_stage);
-
-extern glsl_precision
-precision_from_ir (ir_instruction* ir);
-
-
-extern glsl_precision higher_precision (ir_instruction* a, ir_instruction* b);
-static inline glsl_precision higher_precision (glsl_precision a, glsl_precision b)
-{
-	return MIN2 (a, b);
-}
 
 extern char *
 prototype_string(const glsl_type *return_type, const char *name,

@@ -83,20 +83,6 @@ ir_variable_refcount_visitor::get_variable_entry(ir_variable *var)
    return entry;
 }
 
-ir_variable_refcount_entry *
-ir_variable_refcount_visitor::find_variable_entry(ir_variable *var)
-{
-	assert(var);
-	struct hash_entry *e = _mesa_hash_table_search(this->ht,
-												   _mesa_hash_pointer(var),
-												   var);
-	if (e)
-		return (ir_variable_refcount_entry *)e->data;
-	
-	return NULL;
-}
-
-
 
 ir_visitor_status
 ir_variable_refcount_visitor::visit(ir_variable *ir)

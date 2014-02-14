@@ -65,6 +65,9 @@ enum lower_packing_builtins_op {
    LOWER_UNPACK_UNORM_4x8               = 0x0800
 };
 
+void convert_to_ssa(exec_list *instructions);
+void convert_from_ssa(exec_list *instructions);
+
 bool do_common_optimization(exec_list *ir, bool linked,
 			    bool uniform_locations_assigned,
 			    unsigned max_unroll_iterations,
@@ -89,6 +92,7 @@ bool do_dead_functions(exec_list *instructions);
 bool opt_flip_matrices(exec_list *instructions);
 bool do_function_inlining(exec_list *instructions);
 bool do_lower_jumps(exec_list *instructions, bool pull_out_jumps = true, bool lower_sub_return = true, bool lower_main_return = false, bool lower_continue = false, bool lower_break = false);
+bool do_lower_texture_projection(exec_list *instructions);
 bool do_if_simplification(exec_list *instructions);
 bool opt_flatten_nested_if_blocks(exec_list *instructions);
 bool do_discard_simplification(exec_list *instructions);

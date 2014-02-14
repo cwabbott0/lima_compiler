@@ -375,9 +375,15 @@ control_line:
 		_glcpp_parser_skip_stack_pop (parser, & @1);
 	} NEWLINE
 |	HASH_VERSION integer_constant NEWLINE {
+		if (parser->version_resolved) {
+			glcpp_error(& @1, parser, "#version must appear on the first line");
+		}
 		_glcpp_parser_handle_version_declaration(parser, $2, NULL, true);
 	}
 |	HASH_VERSION integer_constant IDENTIFIER NEWLINE {
+		if (parser->version_resolved) {
+			glcpp_error(& @1, parser, "#version must appear on the first line");
+		}
 		_glcpp_parser_handle_version_declaration(parser, $2, $3, true);
 	}
 |	HASH NEWLINE {
@@ -388,11 +394,11 @@ control_line:
 integer_constant:
 	INTEGER_STRING {
 		if (strlen ($1) >= 3 && strncmp ($1, "0x", 2) == 0) {
-			$$ = (int)strtoll ($1 + 2, NULL, 16);
+			$$ = strtoll ($1 + 2, NULL, 16);
 		} else if ($1[0] == '0') {
-			$$ = (int)strtoll ($1, NULL, 8);
+			$$ = strtoll ($1, NULL, 8);
 		} else {
-			$$ = (int)strtoll ($1, NULL, 10);
+			$$ = strtoll ($1, NULL, 10);
 		}
 	}
 |	INTEGER {
@@ -2146,7 +2152,6 @@ _glcpp_parser_handle_version_declaration(glcpp_parser_t *parser, intmax_t versio
 
 /* GLSL version if no version is explicitly specified. */
 #define IMPLICIT_GLSL_VERSION 110
-#define IMPLICIT_GLSL_ES_VERSION 100
 
 /* GLSL ES version if no version is explicitly specified. */
 #define IMPLICIT_GLSL_ES_VERSION 100

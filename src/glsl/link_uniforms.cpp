@@ -413,7 +413,7 @@ public:
             const struct gl_uniform_buffer_variable *const ubo_var =
                &block->Uniforms[var->data.location];
 
-            ubo_row_major = !!ubo_var->RowMajor;
+            ubo_row_major = ubo_var->RowMajor;
             ubo_byte_offset = ubo_var->Offset;
          }
 
@@ -697,8 +697,8 @@ link_assign_uniform_block_offsets(struct gl_shader *shader)
 	 struct gl_uniform_buffer_variable *ubo_var = &block->Uniforms[i];
 	 const struct glsl_type *type = ubo_var->Type;
 
-	 unsigned alignment = type->std140_base_alignment(!!ubo_var->RowMajor);
-	 unsigned size = type->std140_size(!!ubo_var->RowMajor);
+	 unsigned alignment = type->std140_base_alignment(ubo_var->RowMajor);
+	 unsigned size = type->std140_size(ubo_var->RowMajor);
 
 	 offset = glsl_align(offset, alignment);
 	 ubo_var->Offset = offset;

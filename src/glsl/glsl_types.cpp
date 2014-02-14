@@ -27,7 +27,6 @@
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
-#include "main/glminimal.h"
 extern "C" {
 #include "program/hash_table.h"
 }
@@ -101,7 +100,6 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].type = fields[i].type;
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
 						     fields[i].name);
-      this->fields.structure[i].precision = fields[i].precision;
       this->fields.structure[i].location = fields[i].location;
       this->fields.structure[i].interpolation = fields[i].interpolation;
       this->fields.structure[i].centroid = fields[i].centroid;
@@ -130,7 +128,6 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
       this->fields.structure[i].type = fields[i].type;
       this->fields.structure[i].name = ralloc_strdup(this->fields.structure,
 						     fields[i].name);
-      this->fields.structure[i].precision = fields[i].precision;
       this->fields.structure[i].location = fields[i].location;
       this->fields.structure[i].interpolation = fields[i].interpolation;
       this->fields.structure[i].centroid = fields[i].centroid;
@@ -298,7 +295,7 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length) :
     * for 32-bits of ~0.  The extra 3 are for the '[', ']', and terminating
     * NUL.
     */
-   const unsigned name_length = (unsigned)strlen(array->name) + 10 + 3;
+   const unsigned name_length = strlen(array->name) + 10 + 3;
    char *const n = (char *) ralloc_size(this->mem_ctx, name_length);
 
    if (length == 0)
@@ -494,9 +491,6 @@ glsl_type::record_compare(const glsl_type *b) const
       if (this->fields.structure[i].sample
           != b->fields.structure[i].sample)
          return false;
-      if (this->fields.structure[i].precision
-          != b->fields.structure[i].precision)
-         return false;
    }
 
    return true;
@@ -606,20 +600,6 @@ glsl_type::field_type(const char *name) const
    }
 
    return error_type;
-}
-
-const glsl_precision
-glsl_type::field_precision(const char *name) const
-{
-   if (this->base_type != GLSL_TYPE_STRUCT)
-      return glsl_precision_undefined;
-
-   for (unsigned i = 0; i < this->length; i++) {
-      if (strcmp(name, this->fields.structure[i].name) == 0)
-	 return this->fields.structure[i].precision;
-   }
-
-   return glsl_precision_undefined;
 }
 
 

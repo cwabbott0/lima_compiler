@@ -243,7 +243,6 @@ is_cse_candidate(ir_rvalue *ir)
    return v.ok;
 }
 
-
 /**
  * Tries to find and return a reference to a previous computation of a given
  * expression.
@@ -281,7 +280,7 @@ cse_visitor::try_cse(ir_rvalue *rvalue)
 
          ir_variable *var = new(rvalue) ir_variable(rvalue->type,
                                                     "cse",
-                                                    ir_var_auto, rvalue->get_precision());
+                                                    ir_var_auto);
 
          /* Write the previous expression result into a new variable. */
          base_ir->insert_before(var);

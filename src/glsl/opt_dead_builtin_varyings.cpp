@@ -308,14 +308,14 @@ public:
                snprintf(name, 32, "gl_%s_FrontColor%i_dummy", mode_str, i);
                this->new_color[i] =
                   new (ctx) ir_variable(glsl_type::vec4_type, name,
-                                        ir_var_temporary, glsl_precision_medium);
+                                        ir_var_temporary);
             }
 
             if (info->backcolor[i]) {
                snprintf(name, 32, "gl_%s_BackColor%i_dummy", mode_str, i);
                this->new_backcolor[i] =
                   new (ctx) ir_variable(glsl_type::vec4_type, name,
-                                        ir_var_temporary, glsl_precision_medium);
+                                        ir_var_temporary);
             }
          }
       }
@@ -326,7 +326,7 @@ public:
 
          snprintf(name, 32, "gl_%s_FogFragCoord_dummy", mode_str);
          this->new_fog = new (ctx) ir_variable(glsl_type::float_type, name,
-                                               ir_var_temporary, glsl_precision_high);
+                                               ir_var_temporary);
       }
 
       /* Now do the replacing. */
@@ -334,7 +334,7 @@ public:
    }
 
    void prepare_array(exec_list *ir,
-                      class ir_variable **new_var,
+                      struct ir_variable **new_var,
                       int max_elements, unsigned start_location,
                       const char *var_name, const char *mode_str,
                       unsigned usage, unsigned external_usage)
@@ -351,13 +351,13 @@ public:
                snprintf(name, 32, "gl_%s_%s%i_dummy", mode_str, var_name, i);
                new_var[i] =
                   new (ctx) ir_variable(glsl_type::vec4_type, name,
-                                        ir_var_temporary, glsl_precision_undefined);
+                                        ir_var_temporary);
             }
             else {
                snprintf(name, 32, "gl_%s_%s%i", mode_str, var_name, i);
                new_var[i] =
                   new(ctx) ir_variable(glsl_type::vec4_type, name,
-                                       this->info->mode, glsl_precision_undefined);
+                                       this->info->mode);
                new_var[i]->data.location = start_location + i;
                new_var[i]->data.explicit_location = true;
                new_var[i]->data.explicit_index = 0;

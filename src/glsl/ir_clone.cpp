@@ -40,8 +40,16 @@ ir_rvalue::clone(void *mem_ctx, struct hash_table *ht) const
 ir_variable *
 ir_variable::clone(void *mem_ctx, struct hash_table *ht) const
 {
-   ir_variable *var = new(mem_ctx) ir_variable(this->type, this->name,
-					       (ir_variable_mode) this->data.mode, (glsl_precision)this->data.precision);
+   ir_variable *var;
+
+   if (ht) {
+      var = (ir_variable *)hash_table_find(ht, this);
+      if (var)
+	 return var;
+   }
+
+   var = new(mem_ctx) ir_variable(this->type, this->name,
+				  (ir_variable_mode) this->data.mode);
 
    var->data.max_array_access = this->data.max_array_access;
    if (this->is_interface_instance()) {
@@ -85,9 +93,7 @@ ir_variable::clone(void *mem_ctx, struct hash_table *ht) const
 ir_swizzle *
 ir_swizzle::clone(void *mem_ctx, struct hash_table *ht) const
 {
-   ir_swizzle* rv = new(mem_ctx) ir_swizzle(this->val->clone(mem_ctx, ht), this->mask);
-   rv->set_precision (this->get_precision());
-   return rv;
+   return new(mem_ctx) ir_swizzle(this->val->clone(mem_ctx, ht), this->mask);
 }
 
 ir_return *
@@ -115,15 +121,103 @@ ir_discard::clone(void *mem_ctx, struct hash_table *ht) const
 ir_loop_jump *
 ir_loop_jump::clone(void *mem_ctx, struct hash_table *ht) const
 {
-   (void)ht;
+   /*
+    * ir_phi_loop_begin and ir_phi_loop_end will clone loop_jump statements,
+    * so like with ir_variable we need to use the hash table to make sure we
+    * don't clone the same loop_jump twice
+    */
 
-   return new(mem_ctx) ir_loop_jump(this->mode);
+   ir_loop_jump *new_loop_jump;
+   if (ht)
+   {
+      new_loop_jump = (ir_loop_jump *)hash_table_find(ht, this);
+      if (new_loop_jump) {
+	 return new_loop_jump;
+      }
+   }
+
+   new_loop_jump = new(mem_ctx) ir_loop_jump(this->mode);
+   if (ht) {
+      hash_table_insert(ht, new_loop_jump,
+			(void *)const_cast<ir_loop_jump *>(this));
+   }
+   return new_loop_jump;
+}
+
+static ir_variable *
+find_variable(ir_variable *var, void *mem_ctx, struct hash_table *ht)
+{
+   if (ht) {
+      ir_variable *new_var = (ir_variable *)hash_table_find(ht, var);
+      if (new_var)
+	 return new_var;
+   }
+
+   return var;
+}
+
+ir_phi_if *
+ir_phi_if::clone(void *mem_ctx, struct hash_table *ht) const
+{
+   ir_phi_if *new_phi = new(mem_ctx) ir_phi_if(this->dest->clone(mem_ctx, ht),
+					       this->if_src->clone(mem_ctx, ht),
+					       this->else_src->clone(mem_ctx, ht));
+
+   new_phi->dest->ssa_owner = new_phi;
+
+   return new_phi;
+}
+
+static ir_phi_jump_src *
+clone_phi_jump_src(ir_phi_jump_src *src, void *mem_ctx, struct hash_table *ht)
+{
+   ir_phi_jump_src *new_src = new(mem_ctx) ir_phi_jump_src();
+   new_src->src = src->src->clone(mem_ctx, ht);
+   new_src->jump = src->jump->clone(mem_ctx, ht);
+   return new_src;
+}
+
+ir_phi_loop_begin *
+ir_phi_loop_begin::clone(void *mem_ctx, struct hash_table *ht) const
+{
+   ir_phi_loop_begin *new_phi = new(mem_ctx) ir_phi_loop_begin(this->dest->clone(mem_ctx, ht),
+							       this->enter_src->clone(mem_ctx, ht),
+							       this->repeat_src->clone(mem_ctx, ht));
+
+   foreach_list(n, &this->continue_srcs) {
+      ir_phi_jump_src *src = (ir_phi_jump_src *) n;
+      new_phi->continue_srcs.push_tail(clone_phi_jump_src(src, mem_ctx, ht));
+   }
+
+   new_phi->dest->ssa_owner = new_phi;
+
+   return new_phi;
+}
+
+ir_phi_loop_end *
+ir_phi_loop_end::clone(void *mem_ctx, struct hash_table *ht) const
+{
+   ir_phi_loop_end *new_phi = new(mem_ctx) ir_phi_loop_end(this->dest->clone(mem_ctx, ht));
+
+   foreach_list(n, &this->break_srcs) {
+      ir_phi_jump_src *src = (ir_phi_jump_src *) n;
+      new_phi->break_srcs.push_tail(clone_phi_jump_src(src, mem_ctx, ht));
+   }
+
+   new_phi->dest->ssa_owner = new_phi;
+
+   return new_phi;
 }
 
 ir_if *
 ir_if::clone(void *mem_ctx, struct hash_table *ht) const
 {
    ir_if *new_if = new(mem_ctx) ir_if(this->condition->clone(mem_ctx, ht));
+
+   foreach_list(n, &this->phi_nodes) {
+      ir_phi_if *ir = (ir_phi_if *) n;
+      new_if->phi_nodes.push_tail(ir->clone(mem_ctx, ht));
+   }
 
    foreach_list(n, &this->then_instructions) {
       ir_instruction *ir = (ir_instruction *) n;
@@ -143,6 +237,16 @@ ir_loop::clone(void *mem_ctx, struct hash_table *ht) const
 {
    ir_loop *new_loop = new(mem_ctx) ir_loop();
 
+   foreach_list(n, &this->begin_phi_nodes) {
+      ir_phi_loop_begin *iplb = (ir_phi_loop_begin *) n;
+      new_loop->begin_phi_nodes.push_tail(iplb->clone(mem_ctx, ht));
+   }
+
+   foreach_list(n, &this->end_phi_nodes) {
+      ir_phi_loop_end *iple = (ir_phi_loop_end *) n;
+      new_loop->end_phi_nodes.push_tail(iple->clone(mem_ctx, ht));
+   }
+
    foreach_list(n, &this->body_instructions) {
       ir_instruction *ir = (ir_instruction *) n;
       new_loop->body_instructions.push_tail(ir->clone(mem_ctx, ht));
@@ -155,8 +259,15 @@ ir_call *
 ir_call::clone(void *mem_ctx, struct hash_table *ht) const
 {
    ir_dereference_variable *new_return_ref = NULL;
+   ir_variable *new_var = NULL;
    if (this->return_deref != NULL)
       new_return_ref = this->return_deref->clone(mem_ctx, ht);
+
+   if (this->return_deref->variable_referenced()
+       && this->return_deref->variable_referenced()->data.mode ==
+       ir_var_temporary_ssa) {
+      new_var = this->return_deref->variable_referenced()->clone(mem_ctx, ht);
+   }
 
    exec_list new_parameters;
 
@@ -165,8 +276,14 @@ ir_call::clone(void *mem_ctx, struct hash_table *ht) const
       new_parameters.push_tail(ir->clone(mem_ctx, ht));
    }
 
-   ir_call* rv = new(mem_ctx) ir_call(this->callee, new_return_ref, &new_parameters);
-   return rv;
+   ir_call *ret = new(mem_ctx) ir_call(this->callee, new_return_ref,
+				       &new_parameters);
+
+   if (new_var) {
+      new_var->ssa_owner = ret;
+   }
+
+   return ret;
 }
 
 ir_expression *
@@ -179,28 +296,15 @@ ir_expression::clone(void *mem_ctx, struct hash_table *ht) const
       op[i] = this->operands[i]->clone(mem_ctx, ht);
    }
 
-   ir_expression* rv = new(mem_ctx) ir_expression(this->operation, this->type,
+   return new(mem_ctx) ir_expression(this->operation, this->type,
 				     op[0], op[1], op[2], op[3]);
-   rv->set_precision (this->get_precision());
-   return rv;
 }
 
 ir_dereference_variable *
 ir_dereference_variable::clone(void *mem_ctx, struct hash_table *ht) const
 {
-   ir_variable *new_var;
-
-   if (ht) {
-      new_var = (ir_variable *)hash_table_find(ht, this->var);
-      if (!new_var)
-	 new_var = this->var;
-   } else {
-      new_var = this->var;
-   }
-
-   ir_dereference_variable* rv = new(mem_ctx) ir_dereference_variable(new_var);
-   rv->set_precision (this->get_precision());
-   return rv;
+   return new(mem_ctx) ir_dereference_variable(find_variable(this->var,
+							      mem_ctx, ht));
 }
 
 ir_dereference_array *
@@ -227,6 +331,11 @@ ir_texture::clone(void *mem_ctx, struct hash_table *ht) const
    new_tex->sampler = this->sampler->clone(mem_ctx, ht);
    if (this->coordinate)
       new_tex->coordinate = this->coordinate->clone(mem_ctx, ht);
+   if (this->projector)
+      new_tex->projector = this->projector->clone(mem_ctx, ht);
+   if (this->shadow_comparitor) {
+      new_tex->shadow_comparitor = this->shadow_comparitor->clone(mem_ctx, ht);
+   }
 
    if (this->offset != NULL)
       new_tex->offset = this->offset->clone(mem_ctx, ht);
@@ -263,14 +372,28 @@ ir_assignment *
 ir_assignment::clone(void *mem_ctx, struct hash_table *ht) const
 {
    ir_rvalue *new_condition = NULL;
+   ir_variable *new_var = NULL;
 
    if (this->condition)
       new_condition = this->condition->clone(mem_ctx, ht);
 
-   return new(mem_ctx) ir_assignment(this->lhs->clone(mem_ctx, ht),
-				     this->rhs->clone(mem_ctx, ht),
-				     new_condition,
-				     this->write_mask);
+   if (this->lhs->variable_referenced()
+       && this->lhs->variable_referenced()->data.mode == ir_var_temporary_ssa) {
+      new_var = this->lhs->variable_referenced()->clone(mem_ctx, ht);
+   }
+
+
+
+   ir_assignment *ret = new(mem_ctx) ir_assignment(this->lhs->clone(mem_ctx, ht),
+						   this->rhs->clone(mem_ctx, ht),
+						   new_condition,
+						   this->write_mask);
+
+   if (new_var) {
+      new_var->ssa_owner = ret;
+   }
+
+   return ret;
 }
 
 ir_function *
@@ -316,7 +439,7 @@ ir_function_signature *
 ir_function_signature::clone_prototype(void *mem_ctx, struct hash_table *ht) const
 {
    ir_function_signature *copy =
-      new(mem_ctx) ir_function_signature(this->return_type, this->precision);
+      new(mem_ctx) ir_function_signature(this->return_type);
 
    copy->is_defined = false;
    copy->builtin_avail = this->builtin_avail;
@@ -385,20 +508,6 @@ ir_constant::clone(void *mem_ctx, struct hash_table *ht) const
 
    return NULL;
 }
-
-
-ir_precision_statement *
-ir_precision_statement::clone(void *mem_ctx, struct hash_table *ht) const
-{
-   return new(mem_ctx) ir_precision_statement(this->precision_statement);
-}
-
-ir_typedecl_statement *
-ir_typedecl_statement::clone(void *mem_ctx, struct hash_table *ht) const
-{
-	return new(mem_ctx) ir_typedecl_statement(this->type_decl);
-}
-
 
 
 class fixup_ir_call_visitor : public ir_hierarchical_visitor {

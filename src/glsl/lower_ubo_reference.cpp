@@ -153,7 +153,7 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
 
    ir_rvalue *offset = new(mem_ctx) ir_constant(0u);
    unsigned const_offset = 0;
-   bool row_major = !!ubo_var->RowMajor;
+   bool row_major = ubo_var->RowMajor;
 
    /* Calculate the offset to the start of the region of the UBO
     * dereferenced by *rvalue.  This may be a variable offset if an
@@ -243,12 +243,12 @@ lower_ubo_reference_visitor::handle_rvalue(ir_rvalue **rvalue)
    const glsl_type *type = (*rvalue)->type;
    ir_variable *load_var = new(mem_ctx) ir_variable(type,
 						    "ubo_load_temp",
-						    ir_var_temporary, (*rvalue)->get_precision());
+						    ir_var_temporary);
    base_ir->insert_before(load_var);
 
    ir_variable *load_offset = new(mem_ctx) ir_variable(glsl_type::uint_type,
 						       "ubo_load_temp_offset",
-						       ir_var_temporary, glsl_precision_undefined);
+						       ir_var_temporary);
    base_ir->insert_before(load_offset);
    base_ir->insert_before(assign(load_offset, offset));
 
@@ -296,18 +296,18 @@ lower_ubo_reference_visitor::emit_ubo_loads(ir_dereference *deref,
 
 	 field_offset =
 	    glsl_align(field_offset,
-		       field->type->std140_base_alignment(!!ubo_var->RowMajor));
+		       field->type->std140_base_alignment(ubo_var->RowMajor));
 
 	 emit_ubo_loads(field_deref, base_offset, deref_offset + field_offset);
 
-	 field_offset += field->type->std140_size(!!ubo_var->RowMajor);
+	 field_offset += field->type->std140_size(ubo_var->RowMajor);
       }
       return;
    }
 
    if (deref->type->is_array()) {
       unsigned array_stride =
-	 glsl_align(deref->type->fields.array->std140_size(!!ubo_var->RowMajor),
+	 glsl_align(deref->type->fields.array->std140_size(ubo_var->RowMajor),
 		    16);
 
       for (unsigned i = 0; i < deref->type->length; i++) {

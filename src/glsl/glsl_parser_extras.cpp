@@ -56,7 +56,8 @@ static unsigned known_desktop_glsl_versions[] =
 _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
 					       gl_shader_stage stage,
                                                void *mem_ctx)
-   : ctx(_ctx), switch_state()
+   : ctx(_ctx), cs_input_local_size_specified(false), cs_input_local_size(),
+     switch_state()
 {
    assert(stage < MESA_SHADER_STAGES);
    this->stage = stage;
@@ -81,7 +82,6 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->language_version = ctx->Const.ForceGLSLVersion ?
                             ctx->Const.ForceGLSLVersion : 110;
    this->es_shader = false;
-   this->had_version_string = false;
    this->ARB_texture_rectangle_enable = true;
 
    /* OpenGL ES 2.0 has different defaults from desktop GL. */
@@ -123,6 +123,12 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    this->Const.MaxFragmentAtomicCounters = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxAtomicCounters;
    this->Const.MaxCombinedAtomicCounters = ctx->Const.MaxCombinedAtomicCounters;
    this->Const.MaxAtomicBufferBindings = ctx->Const.MaxAtomicBufferBindings;
+
+   /* Compute shader constants */
+   for (unsigned i = 0; i < Elements(this->Const.MaxComputeWorkGroupCount); i++)
+      this->Const.MaxComputeWorkGroupCount[i] = ctx->Const.MaxComputeWorkGroupCount[i];
+   for (unsigned i = 0; i < Elements(this->Const.MaxComputeWorkGroupSize); i++)
+      this->Const.MaxComputeWorkGroupSize[i] = ctx->Const.MaxComputeWorkGroupSize[i];
 
    this->current_function = NULL;
    this->toplevel_ir = NULL;
@@ -183,7 +189,7 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(struct gl_context *_ctx,
    if (ctx->Const.ForceGLSLExtensionsWarn)
       _mesa_glsl_process_extension("all", NULL, "warn", NULL, this);
 
-   this->default_uniform_qualifier = new(this) ast_type_qualifier;
+   this->default_uniform_qualifier = new(this) ast_type_qualifier();
    this->default_uniform_qualifier->flags.q.shared = 1;
    this->default_uniform_qualifier->flags.q.column_major = 1;
 
@@ -297,7 +303,6 @@ _mesa_glsl_parse_state::process_version_directive(YYLTYPE *locp, int version,
    }
 
    this->language_version = version;
-   this->had_version_string = true;
 
    bool supported = false;
    for (unsigned i = 0; i < this->num_supported_versions; i++) {
@@ -499,7 +504,6 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_texture_rectangle,          true,  false,     dummy_true),
    EXT(EXT_texture_array,              true,  false,     EXT_texture_array),
    EXT(ARB_shader_texture_lod,         true,  false,     ARB_shader_texture_lod),
-   EXT(EXT_shader_texture_lod,         false, true,      ARB_shader_texture_lod),
    EXT(ARB_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
    EXT(AMD_conservative_depth,         true,  false,     ARB_conservative_depth),
    EXT(AMD_shader_stencil_export,      true,  false,     ARB_shader_stencil_export),
@@ -508,8 +512,6 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_shader_bit_encoding,        true,  false,     ARB_shader_bit_encoding),
    EXT(ARB_uniform_buffer_object,      true,  false,     ARB_uniform_buffer_object),
    EXT(OES_standard_derivatives,       false,  true,     OES_standard_derivatives),
-   EXT(EXT_shadow_samplers,            false,  true,     EXT_shadow_samplers),
-   EXT(EXT_frag_depth,                 false,  true,     EXT_frag_depth),
    EXT(ARB_texture_cube_map_array,     true,  false,     ARB_texture_cube_map_array),
    EXT(ARB_shading_language_packing,   true,  false,     ARB_shading_language_packing),
    EXT(ARB_shading_language_420pack,   true,  false,     ARB_shading_language_420pack),
@@ -552,7 +554,7 @@ bool _mesa_glsl_extension::compatible_with_state(const _mesa_glsl_parse_state *
     * offset this->supported_flag.  See
     * _mesa_glsl_extension::supported_flag for more info.
     */
-   return !!(state->extensions->*(this->supported_flag));
+   return state->extensions->*(this->supported_flag);
 }
 
 /**
@@ -1337,23 +1339,35 @@ set_shader_inout_layout(struct gl_shader *shader,
       /* Should have been prevented by the parser. */
       assert(!state->gs_input_prim_type_specified);
       assert(!state->out_qualifier->flags.i);
-      return;
    }
 
-   shader->Geom.VerticesOut = 0;
-   if (state->out_qualifier->flags.q.max_vertices)
-      shader->Geom.VerticesOut = state->out_qualifier->max_vertices;
-
-   if (state->gs_input_prim_type_specified) {
-      shader->Geom.InputType = state->gs_input_prim_type;
-   } else {
-      shader->Geom.InputType = PRIM_UNKNOWN;
+   if (shader->Stage != MESA_SHADER_COMPUTE) {
+      /* Should have been prevented by the parser. */
+      assert(!state->cs_input_local_size_specified);
    }
 
-   if (state->out_qualifier->flags.q.prim_type) {
-      shader->Geom.OutputType = state->out_qualifier->prim_type;
-   } else {
-      shader->Geom.OutputType = PRIM_UNKNOWN;
+   switch (shader->Stage) {
+   case MESA_SHADER_GEOMETRY:
+      shader->Geom.VerticesOut = 0;
+      if (state->out_qualifier->flags.q.max_vertices)
+         shader->Geom.VerticesOut = state->out_qualifier->max_vertices;
+
+      if (state->gs_input_prim_type_specified) {
+         shader->Geom.InputType = state->gs_input_prim_type;
+      } else {
+         shader->Geom.InputType = PRIM_UNKNOWN;
+      }
+
+      if (state->out_qualifier->flags.q.prim_type) {
+         shader->Geom.OutputType = state->out_qualifier->prim_type;
+      } else {
+         shader->Geom.OutputType = PRIM_UNKNOWN;
+      }
+      break;
+
+   default:
+      /* Nothing to do. */
+      break;
    }
 }
 
@@ -1367,7 +1381,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
    const char *source = shader->Source;
 
-   state->error = !!glcpp_preprocess(state, &source, &state->info_log,
+   state->error = glcpp_preprocess(state, &source, &state->info_log,
                              &ctx->Extensions, ctx);
 
    if (!state->error) {
@@ -1402,6 +1416,10 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    if (!state->error && !shader->ir->is_empty()) {
       struct gl_shader_compiler_options *options =
          &ctx->ShaderCompilerOptions[shader->Stage];
+
+      convert_to_ssa(shader->ir);
+
+      convert_from_ssa(shader->ir);
 
       /* Do some optimization at compile time to reduce shader IR size
        * and reduce later work if the same shader is linked multiple times
@@ -1513,7 +1531,7 @@ do_common_optimization(exec_list *ir, bool linked,
    }
    delete ls;
 
-   return !!progress;
+   return progress;
 }
 
 extern "C" {

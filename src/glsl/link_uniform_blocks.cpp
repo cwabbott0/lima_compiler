@@ -97,9 +97,9 @@ private:
       }
 
       const unsigned alignment = record_type
-	 ? record_type->std140_base_alignment(!!v->RowMajor)
-	 : type->std140_base_alignment(!!v->RowMajor);
-      unsigned size = type->std140_size(!!v->RowMajor);
+	 ? record_type->std140_base_alignment(v->RowMajor)
+	 : type->std140_base_alignment(v->RowMajor);
+      unsigned size = type->std140_size(v->RowMajor);
 
       this->offset = glsl_align(this->offset, alignment);
       v->Offset = this->offset;

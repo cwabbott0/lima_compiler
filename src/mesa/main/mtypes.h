@@ -213,6 +213,7 @@ typedef enum
    MESA_SHADER_VERTEX = 0,
    MESA_SHADER_GEOMETRY = 1,
    MESA_SHADER_FRAGMENT = 2,
+   MESA_SHADER_COMPUTE = 3,
 } gl_shader_stage;
 
 #define MESA_SHADER_STAGES (MESA_SHADER_FRAGMENT + 1)
@@ -1178,6 +1179,15 @@ struct gl_constants
    GLuint MaxCombinedImageUnitsAndFragmentOutputs;
    GLuint MaxImageSamples;
    GLuint MaxCombinedImageUniforms;
+   
+   /** GL_ARB_compute_shader */
+   GLuint MaxComputeWorkGroupCount[3]; /* Array of x, y, z dimensions */
+   GLuint MaxComputeWorkGroupSize[3]; /* Array of x, y, z dimensions */
+   GLuint MaxComputeWorkGroupInvocations;
+   
+   /** GL_ARB_gpu_shader5 */
+   GLfloat MinFragmentInterpolationOffset;
+   GLfloat MaxFragmentInterpolationOffset;
 };
 
 

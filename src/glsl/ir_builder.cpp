@@ -39,7 +39,7 @@ ir_factory::make_temp(const glsl_type *type, const char *name)
 {
    ir_variable *var;
 
-   var = new(mem_ctx) ir_variable(type, name, ir_var_temporary, glsl_precision_undefined);
+   var = new(mem_ctx) ir_variable(type, name, ir_var_temporary);
    emit(var);
 
    return var;
@@ -76,6 +76,20 @@ assign(deref lhs, operand rhs, operand condition)
    return assign(lhs, rhs, condition, (1 << lhs.val->type->vector_elements) - 1);
 }
 
+ir_assignment *
+ssa_assign(const char *name, operand rhs)
+{
+   void *mem_ctx = ralloc_parent(rhs.val);
+
+   ir_variable *var = new(mem_ctx) ir_variable(rhs.val->type, name,
+					       ir_var_temporary_ssa);
+
+   ir_assignment *ret = assign(var, rhs);
+   var->ssa_owner = ret;
+   return ret;
+}
+
+
 ir_return *
 ret(operand retval)
 {
@@ -101,7 +115,7 @@ swizzle_for_size(operand a, unsigned components)
 {
    void *mem_ctx = ralloc_parent(a.val);
 
-   if ((int)a.val->type->vector_elements < components)
+   if (a.val->type->vector_elements < components)
       components = a.val->type->vector_elements;
 
    unsigned s[4] = { 0, 1, 2, 3 };
@@ -163,6 +177,12 @@ ir_swizzle *
 swizzle_xy(operand a)
 {
    return swizzle(a, SWIZZLE_XYZW, 2);
+}
+
+ir_swizzle *
+swizzle_component(operand a, int component)
+{
+   return swizzle(a, MAKE_SWIZZLE4(component, component, component, component), 1);
 }
 
 ir_swizzle *
@@ -270,7 +290,7 @@ ir_expression *dotlike(operand a, operand b)
 ir_expression*
 clamp(operand a, operand b, operand c)
 {
-   return expr(ir_triop_clamp, a, b, c);
+   return expr(ir_binop_min, expr(ir_binop_max, a, b), c);
 }
 
 ir_expression *

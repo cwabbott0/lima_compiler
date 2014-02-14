@@ -581,7 +581,7 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
    case ir_unop_round_even:
       assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
-	 data.f[c] = (float)_mesa_round_to_even(op[0]->value.f[c]);
+	 data.f[c] = _mesa_round_to_even(op[0]->value.f[c]);
       }
       break;
 
@@ -598,23 +598,6 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	 data.f[c] = floorf(op[0]->value.f[c]);
       }
       break;
-
-	case ir_unop_normalize:
-	{
-		assert(op[0]->type->base_type == GLSL_TYPE_FLOAT);
-		float mag2 = 0.0f;
-		for (unsigned c = 0; c < op[0]->type->components(); c++) {
-			mag2 += op[0]->value.f[c] * op[0]->value.f[c];
-		}
-		// how would one express "vec3(nan)" in GLSL? no idea, so let's just not handle it
-		if (mag2 == 0.0f)
-			return NULL;
-		float mag = sqrtf(mag2);
-		for (unsigned c = 0; c < op[0]->type->components(); c++) {
-			data.f[c] = op[0]->value.f[c] / mag;
-		}
-	}
-	break;      
 
    case ir_unop_fract:
       for (unsigned c = 0; c < op[0]->type->components(); c++) {
@@ -1534,6 +1517,9 @@ ir_expression::constant_expression_value(struct hash_table *variable_context)
 	    break;
 	 case GLSL_TYPE_FLOAT:
 	    data.f[c] = op[c]->value.f[0];
+	    break;
+	 case GLSL_TYPE_BOOL:
+	    data.b[c] = op[c]->value.b[0];
 	    break;
 	 default:
 	    assert(0);

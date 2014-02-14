@@ -267,7 +267,7 @@ void
 lower_instructions_visitor::mod_to_fract(ir_expression *ir)
 {
    ir_variable *temp = new(ir) ir_variable(ir->operands[1]->type, "mod_b",
-					   ir_var_temporary, precision_from_ir(ir->operands[1]));
+					   ir_var_temporary);
    this->base_ir->insert_before(temp);
 
    ir_assignment *const assign =
@@ -305,7 +305,7 @@ lower_instructions_visitor::lrp_to_arith(ir_expression *ir)
 
    /* Save op2 */
    ir_variable *temp = new(ir) ir_variable(ir->operands[2]->type, "lrp_factor",
-					   ir_var_temporary, precision_from_ir(ir->operands[2]));
+					   ir_var_temporary);
    this->base_ir->insert_before(temp);
    this->base_ir->insert_before(assign(temp, ir->operands[2]));
 
@@ -390,20 +390,19 @@ lower_instructions_visitor::ldexp_to_arith(ir_expression *ir)
    ir_constant *exp_width = new(ir) ir_constant(8u, vec_elem);
 
    /* Temporary variables */
-   glsl_precision prec = ir->get_precision();
-   ir_variable *x = new(ir) ir_variable(ir->type, "x", ir_var_temporary, prec);
-   ir_variable *exp = new(ir) ir_variable(ivec, "exp", ir_var_temporary, prec);
+   ir_variable *x = new(ir) ir_variable(ir->type, "x", ir_var_temporary);
+   ir_variable *exp = new(ir) ir_variable(ivec, "exp", ir_var_temporary);
 
    ir_variable *zero_sign_x = new(ir) ir_variable(ir->type, "zero_sign_x",
-                                                  ir_var_temporary, prec);
+                                                  ir_var_temporary);
 
    ir_variable *extracted_biased_exp =
-      new(ir) ir_variable(ivec, "extracted_biased_exp", ir_var_temporary, prec);
+      new(ir) ir_variable(ivec, "extracted_biased_exp", ir_var_temporary);
    ir_variable *resulting_biased_exp =
-      new(ir) ir_variable(ivec, "resulting_biased_exp", ir_var_temporary, prec);
+      new(ir) ir_variable(ivec, "resulting_biased_exp", ir_var_temporary);
 
    ir_variable *is_not_zero_or_underflow =
-      new(ir) ir_variable(bvec, "is_not_zero_or_underflow", ir_var_temporary, prec);
+      new(ir) ir_variable(bvec, "is_not_zero_or_underflow", ir_var_temporary);
 
    ir_instruction &i = *base_ir;
 

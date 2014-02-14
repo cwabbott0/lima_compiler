@@ -383,6 +383,11 @@ inline void exec_node::insert_before(exec_list *before)
 	; (__node)->next != NULL 			\
 	; (__node) = (__node)->next)
 
+#define foreach_list_reverse(__node, __list)		\
+   for (exec_node * __node = (__list)->tail_pred	\
+	; (__node)->prev != NULL			\
+	; (__node) = (__node)->prev)
+
 /**
  * Iterate through two lists at once.  Stops at the end of the shorter list.
  *

@@ -185,7 +185,7 @@ void *reralloc_size(const void *ctx, void *ptr, size_t size);
  * More than a convenience function, this also checks for integer overflow when
  * multiplying \p size and \p count.  This is necessary for security.
  */
-void *ralloc_array_size(const void *ctx, size_t size, size_t count);
+void *ralloc_array_size(const void *ctx, size_t size, unsigned count);
 
 /**
  * Allocate a zero-initialized array chained off the given context.
@@ -195,7 +195,7 @@ void *ralloc_array_size(const void *ctx, size_t size, size_t count);
  * More than a convenience function, this also checks for integer overflow when
  * multiplying \p size and \p count.  This is necessary for security.
  */
-void *rzalloc_array_size(const void *ctx, size_t size, size_t count);
+void *rzalloc_array_size(const void *ctx, size_t size, unsigned count);
 
 /**
  * Resize a ralloc-managed array, preserving data.
@@ -216,7 +216,7 @@ void *rzalloc_array_size(const void *ctx, size_t size, size_t count);
  * \return True unless allocation failed.
  */
 void *reralloc_array_size(const void *ctx, void *ptr, size_t size,
-			  size_t count);
+			  unsigned count);
 /// @}
 
 /**
@@ -399,10 +399,6 @@ bool ralloc_asprintf_append (char **str, const char *fmt, ...)
  */
 bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 /// @}
-
-
-size_t printf_length(const char *fmt, va_list untouched_args);
-
 
 #ifdef __cplusplus
 } /* end of extern "C" */

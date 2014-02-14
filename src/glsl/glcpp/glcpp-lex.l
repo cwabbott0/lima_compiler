@@ -36,7 +36,6 @@ void glcpp_set_column (int  column_no , yyscan_t yyscanner);
 
 #ifdef _MSC_VER
 #define YY_NO_UNISTD_H
-#pragma warning(disable: 4267) // warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data
 #endif
 
 #define YY_NO_INPUT
@@ -156,8 +155,6 @@ HEXADECIMAL_INTEGER	0[xX][0-9a-fA-F]+[uU]?
 
 	/* Single-line comments */
 "//"[^\n]* {
-	if (parser->commented_newlines)
-		BEGIN NEWLINE_CATCHUP;
 }
 
 	/* Multi-line comments */

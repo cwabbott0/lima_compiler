@@ -26,20 +26,7 @@
 #include "ir_visitor.h"
 #include "glsl_types.h"
 
-glsl_precision higher_precision (ir_instruction* a, ir_instruction* b)
-{
-	if (!a && !b)
-		return glsl_precision_undefined;
-	if (!a)
-		return precision_from_ir (b);
-	if (!b)
-		return precision_from_ir (a);
-	return higher_precision (precision_from_ir(a), precision_from_ir(b));
-}
-
-
-ir_rvalue::ir_rvalue(glsl_precision precision)
-: precision(precision)
+ir_rvalue::ir_rvalue()
 {
    this->type = glsl_type::error_type;
 }
@@ -211,7 +198,6 @@ ir_assignment::ir_assignment(ir_rvalue *lhs, ir_rvalue *rhs,
 ir_expression::ir_expression(int op, const struct glsl_type *type,
 			     ir_rvalue *op0, ir_rvalue *op1,
 			     ir_rvalue *op2, ir_rvalue *op3)
-: ir_rvalue(higher_precision(higher_precision(op0,op1), higher_precision(op2,op3)))
 {
    this->ir_type = ir_type_expression;
    this->type = type;
@@ -229,7 +215,6 @@ ir_expression::ir_expression(int op, const struct glsl_type *type,
 }
 
 ir_expression::ir_expression(int op, ir_rvalue *op0)
-: ir_rvalue(precision_from_ir(op0))
 {
    this->ir_type = ir_type_expression;
 
@@ -250,7 +235,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_rcp:
    case ir_unop_rsq:
    case ir_unop_sqrt:
-   case ir_unop_normalize:
    case ir_unop_exp:
    case ir_unop_log:
    case ir_unop_exp2:
@@ -340,7 +324,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
 }
 
 ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
-: ir_rvalue(higher_precision(op0,op1))
 {
    this->ir_type = ir_type_expression;
 
@@ -423,12 +406,10 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
    case ir_binop_bfm:
    case ir_binop_ldexp:
       this->type = op0->type;
-      this->set_precision(op0->get_precision());
       break;
 
    case ir_binop_vector_extract:
       this->type = op0->type->get_scalar_type();
-      this->set_precision(op0->get_precision());
       break;
 
    default:
@@ -439,7 +420,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
 
 ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1,
                              ir_rvalue *op2)
-: ir_rvalue(higher_precision(precision_from_ir(op0),higher_precision(op1,op2)))
 {
    this->ir_type = ir_type_expression;
 
@@ -453,7 +433,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1,
 
    switch (this->operation) {
    case ir_triop_fma:
-   case ir_triop_clamp:
    case ir_triop_lrp:
    case ir_triop_bitfield_extract:
    case ir_triop_vector_insert:
@@ -481,7 +460,7 @@ ir_expression::get_num_operands(ir_expression_operation op)
 
    if (op <= ir_last_binop)
       return 2;
-	
+
    if (op <= ir_last_triop)
       return 3;
 
@@ -501,7 +480,6 @@ static const char *const operator_strs[] = {
    "rcp",
    "rsq",
    "sqrt",
-   "normalize",
    "exp",
    "log",
    "exp2",
@@ -583,7 +561,6 @@ static const char *const operator_strs[] = {
    "ldexp",
    "vector_extract",
    "fma",
-   "clamp",
    "lrp",
    "csel",
    "bfi",
@@ -633,14 +610,12 @@ ir_expression::get_operator(const char *str)
 }
 
 ir_constant::ir_constant()
-: ir_rvalue(glsl_precision_undefined)
 {
    this->ir_type = ir_type_constant;
 }
 
 ir_constant::ir_constant(const struct glsl_type *type,
 			 const ir_constant_data *data)
-: ir_rvalue(glsl_precision_undefined)
 {
    assert((type->base_type >= GLSL_TYPE_UINT)
 	  && (type->base_type <= GLSL_TYPE_BOOL));
@@ -651,7 +626,6 @@ ir_constant::ir_constant(const struct glsl_type *type,
 }
 
 ir_constant::ir_constant(float f, unsigned vector_elements)
-: ir_rvalue(glsl_precision_undefined)
 {
    assert(vector_elements <= 4);
    this->ir_type = ir_type_constant;
@@ -665,7 +639,6 @@ ir_constant::ir_constant(float f, unsigned vector_elements)
 }
 
 ir_constant::ir_constant(unsigned int u, unsigned vector_elements)
-: ir_rvalue(glsl_precision_undefined)
 {
    assert(vector_elements <= 4);
    this->ir_type = ir_type_constant;
@@ -679,7 +652,6 @@ ir_constant::ir_constant(unsigned int u, unsigned vector_elements)
 }
 
 ir_constant::ir_constant(int integer, unsigned vector_elements)
-: ir_rvalue(glsl_precision_undefined)
 {
    assert(vector_elements <= 4);
    this->ir_type = ir_type_constant;
@@ -693,7 +665,6 @@ ir_constant::ir_constant(int integer, unsigned vector_elements)
 }
 
 ir_constant::ir_constant(bool b, unsigned vector_elements)
-: ir_rvalue(glsl_precision_undefined)
 {
    assert(vector_elements <= 4);
    this->ir_type = ir_type_constant;
@@ -707,7 +678,6 @@ ir_constant::ir_constant(bool b, unsigned vector_elements)
 }
 
 ir_constant::ir_constant(const ir_constant *c, unsigned i)
-: ir_rvalue(c->precision)
 {
    this->ir_type = ir_type_constant;
    this->type = c->type->get_base_type();
@@ -722,7 +692,6 @@ ir_constant::ir_constant(const ir_constant *c, unsigned i)
 }
 
 ir_constant::ir_constant(const struct glsl_type *type, exec_list *value_list)
-: ir_rvalue(glsl_precision_undefined)
 {
    this->ir_type = ir_type_constant;
    this->type = type;
@@ -1260,8 +1229,29 @@ ir_loop::ir_loop()
 }
 
 
+ir_phi_if::ir_phi_if(ir_variable *dest, ir_variable *if_src,
+		     ir_variable *else_src)
+   : ir_phi(dest), if_src(if_src), else_src(else_src)
+{
+   this->ir_type = ir_type_phi_if;
+}
+
+
+ir_phi_loop_begin::ir_phi_loop_begin(ir_variable* dest, ir_variable* enter_src,
+				     ir_variable* repeat_src)
+   : ir_phi(dest), enter_src(enter_src), repeat_src(repeat_src)
+{
+   this->ir_type = ir_type_phi_loop_begin;
+}
+
+
+ir_phi_loop_end::ir_phi_loop_end(ir_variable *dest) : ir_phi(dest)
+{
+   this->ir_type = ir_type_phi_loop_end;
+}
+
+
 ir_dereference_variable::ir_dereference_variable(ir_variable *var)
-: ir_dereference(precision_from_ir(var))
 {
    assert(var != NULL);
 
@@ -1273,7 +1263,6 @@ ir_dereference_variable::ir_dereference_variable(ir_variable *var)
 
 ir_dereference_array::ir_dereference_array(ir_rvalue *value,
 					   ir_rvalue *array_index)
-: ir_dereference(precision_from_ir(value))
 {
    this->ir_type = ir_type_dereference_array;
    this->array_index = array_index;
@@ -1283,7 +1272,6 @@ ir_dereference_array::ir_dereference_array(ir_rvalue *value,
 
 ir_dereference_array::ir_dereference_array(ir_variable *var,
 					   ir_rvalue *array_index)
-: ir_dereference(precision_from_ir(var))
 {
    void *ctx = ralloc_parent(var);
 
@@ -1314,7 +1302,6 @@ ir_dereference_array::set_array(ir_rvalue *value)
 
 ir_dereference_record::ir_dereference_record(ir_rvalue *value,
 					     const char *field)
-: ir_dereference(precision_from_ir(value))
 {
    assert(value != NULL);
 
@@ -1322,14 +1309,11 @@ ir_dereference_record::ir_dereference_record(ir_rvalue *value,
    this->record = value;
    this->field = ralloc_strdup(this, field);
    this->type = this->record->type->field_type(field);
-   if (this->record)
-      this->precision = this->record->type->field_precision(field);
 }
 
 
 ir_dereference_record::ir_dereference_record(ir_variable *var,
 					     const char *field)
-: ir_dereference(precision_from_ir(var))
 {
    void *ctx = ralloc_parent(var);
 
@@ -1337,8 +1321,6 @@ ir_dereference_record::ir_dereference_record(ir_variable *var,
    this->record = new(ctx) ir_dereference_variable(var);
    this->field = ralloc_strdup(this, field);
    this->type = this->record->type->field_type(field);
-   if (this->record)
-      this->precision = this->record->type->field_precision(field);
 }
 
 bool
@@ -1452,7 +1434,7 @@ ir_swizzle::init_mask(const unsigned *comp, unsigned count)
 
 ir_swizzle::ir_swizzle(ir_rvalue *val, unsigned x, unsigned y, unsigned z,
 		       unsigned w, unsigned count)
-   : ir_rvalue(precision_from_ir(val)), val(val)
+   : val(val)
 {
    const unsigned components[4] = { x, y, z, w };
    this->ir_type = ir_type_swizzle;
@@ -1461,14 +1443,13 @@ ir_swizzle::ir_swizzle(ir_rvalue *val, unsigned x, unsigned y, unsigned z,
 
 ir_swizzle::ir_swizzle(ir_rvalue *val, const unsigned *comp,
 		       unsigned count)
-   : ir_rvalue(precision_from_ir(val)), val(val)
+   : val(val)
 {
    this->ir_type = ir_type_swizzle;
    this->init_mask(comp, count);
 }
 
 ir_swizzle::ir_swizzle(ir_rvalue *val, ir_swizzle_mask mask)
-: ir_rvalue(precision_from_ir(val))
 {
    this->ir_type = ir_type_swizzle;
    this->val = val;
@@ -1566,8 +1547,9 @@ ir_swizzle::variable_referenced() const
    return this->val->variable_referenced();
 }
 
+
 ir_variable::ir_variable(const struct glsl_type *type, const char *name,
-			 ir_variable_mode mode, glsl_precision precision)
+			 ir_variable_mode mode)
    : max_ifc_array_access(NULL)
 {
    this->ir_type = ir_type_variable;
@@ -1590,11 +1572,11 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.invariant = false;
    this->data.how_declared = ir_var_declared_normally;
    this->data.mode = mode;
-   this->data.precision = precision;
    this->data.interpolation = INTERP_QUALIFIER_NONE;
    this->data.max_array_access = 0;
    this->data.atomic.buffer_index = 0;
    this->data.atomic.offset = 0;
+   this->ssa_owner = NULL;
 
    if (type != NULL) {
       if (type->base_type == GLSL_TYPE_SAMPLER)
@@ -1639,8 +1621,8 @@ ir_variable::determine_interpolation_mode(bool flat_shade)
 
 
 ir_function_signature::ir_function_signature(const glsl_type *return_type,
-                                             glsl_precision precision, builtin_available_predicate b)
-   : return_type(return_type), precision(precision), is_defined(false), is_intrinsic(false),
+                                             builtin_available_predicate b)
+   : return_type(return_type), is_defined(false), is_intrinsic(false),
      builtin_avail(b), _function(NULL)
 {
    this->ir_type = ir_type_function_signature;
@@ -1695,7 +1677,6 @@ ir_function_signature::qualifiers_match(exec_list *params)
       ir_variable *a = (ir_variable *) a_node;
       ir_variable *b = (ir_variable *) b_node;
 
-      /* NOTE: precision does not affect qualifier matching */
       if (a->data.read_only != b->data.read_only ||
 	  !modes_match(a->data.mode, b->data.mode) ||
 	  a->data.interpolation != b->data.interpolation ||
@@ -1743,7 +1724,7 @@ ir_function::has_user_signature()
 ir_rvalue *
 ir_rvalue::error_value(void *mem_ctx)
 {
-   ir_rvalue *v = new(mem_ctx) ir_rvalue(glsl_precision_undefined);
+   ir_rvalue *v = new(mem_ctx) ir_rvalue;
 
    v->type = glsl_type::error_type;
    return v;
@@ -1764,11 +1745,18 @@ steal_memory(ir_instruction *ir, void *new_ctx)
 {
    ir_variable *var = ir->as_variable();
    ir_constant *constant = ir->as_constant();
+   ir_dereference_variable *deref = ir->as_dereference_variable();
+   ir_phi *phi = ir->as_phi();
+   ir_phi_loop_begin *phi_loop_begin = ir->as_phi_loop_begin();
+   ir_phi_loop_end *phi_loop_end = ir->as_phi_loop_end();
    if (var != NULL && var->constant_value != NULL)
       steal_memory(var->constant_value, ir);
 
    if (var != NULL && var->constant_initializer != NULL)
       steal_memory(var->constant_initializer, ir);
+
+   if (deref != NULL && deref->var->data.mode == ir_var_temporary_ssa)
+      steal_memory(deref->var, ir);
 
    /* The components of aggregate constants are not visited by the normal
     * visitor, so steal their values by hand.
@@ -1786,6 +1774,21 @@ steal_memory(ir_instruction *ir, void *new_ctx)
       }
    }
 
+   if (phi != NULL)
+      steal_memory(phi->dest, new_ctx);
+
+   if (phi_loop_begin != NULL) {
+      foreach_list(n, &phi_loop_begin->continue_srcs) {
+	 ralloc_steal(new_ctx, n);
+      }
+   }
+
+   if (phi_loop_end != NULL) {
+      foreach_list(n, &phi_loop_end->break_srcs) {
+	 ralloc_steal(new_ctx, n);
+      }
+   }
+
    ralloc_steal(new_ctx, ir);
 }
 
@@ -1798,28 +1801,6 @@ reparent_ir(exec_list *list, void *mem_ctx)
    }
 }
 
-
-glsl_precision
-precision_from_ir (ir_instruction* ir)
-{
-	if (!ir)
-		return glsl_precision_undefined;
-	ir_variable* var = ir->as_variable();
-	if (var)
-		return (glsl_precision)var->data.precision;
-	ir_rvalue* rv = ir->as_rvalue();
-	if (rv)
-		return rv->get_precision();
-	ir_call* fcall = ir->as_call();
-	if (fcall && fcall->return_deref)
-		return fcall->return_deref->get_precision();
-	if (ir->ir_type == ir_type_function_signature)
-	{
-		ir_function_signature* sig = (ir_function_signature*)ir;
-		return sig->precision;
-	}
-	return glsl_precision_high;
-}
 
 static ir_rvalue *
 try_min_one(ir_rvalue *ir)

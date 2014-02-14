@@ -78,7 +78,7 @@ ir_expression_flattening_visitor::handle_rvalue(ir_rvalue **rvalue)
 
    void *ctx = ralloc_parent(ir);
 
-   var = new(ctx) ir_variable(ir->type, "flattening_tmp", ir_var_temporary, precision_from_ir(ir));
+   var = new(ctx) ir_variable(ir->type, "flattening_tmp", ir_var_temporary);
    base_ir->insert_before(var);
 
    assign = new(ctx) ir_assignment(new(ctx) ir_dereference_variable(var),

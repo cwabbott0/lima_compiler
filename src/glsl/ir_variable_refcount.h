@@ -62,7 +62,6 @@ public:
    virtual ir_visitor_status visit_leave(ir_assignment *);
 
    ir_variable_refcount_entry *get_variable_entry(ir_variable *var);
-   ir_variable_refcount_entry *find_variable_entry(ir_variable *var);
 
    struct hash_table *ht;
 

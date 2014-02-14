@@ -161,20 +161,6 @@ lod_exists_in_stage(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-es_lod_exists_in_stage(const _mesa_glsl_parse_state *state)
-{
-	/* Texturing functions with "LodEXT" in their name exist:
-	 * In the fragment shader, for ES1 shader, when EXT_shader_texture_lod
-	 * is enabled.
-	 */
-	return
-		state->stage == MESA_SHADER_FRAGMENT &&
-		state->es_shader &&
-		state->is_version(110, 100) &&
-		state->EXT_shader_texture_lod_enable;
-}
-
-static bool
 v110_lod(const _mesa_glsl_parse_state *state)
 {
    return !state->es_shader && lod_exists_in_stage(state);
@@ -184,18 +170,6 @@ static bool
 shader_texture_lod(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_texture_lod_enable;
-}
-
-static bool
-es_shader_texture_lod(const _mesa_glsl_parse_state *state)
-{
-	return state->EXT_shader_texture_lod_enable;
-}
-
-static bool
-es_shadow_samplers(const _mesa_glsl_parse_state *state)
-{
-	return state->EXT_shadow_samplers_enable;
 }
 
 static bool
@@ -694,7 +668,7 @@ builtin_builder::create_shader()
    gl_ModelViewProjectionMatrix =
       new(mem_ctx) ir_variable(glsl_type::mat4_type,
                                "gl_ModelViewProjectionMatrix",
-                               ir_var_uniform, glsl_precision_high);
+                               ir_var_uniform);
 
    shader->symbols->add_variable(gl_ModelViewProjectionMatrix);
 
@@ -1838,17 +1812,6 @@ builtin_builder::create_builtins()
                 _texture(ir_tex, texture_rectangle, glsl_type::vec4_type,  glsl_type::sampler2DRect_type, glsl_type::vec4_type, TEX_PROJECT),
                 NULL);
 
-	add_function("texture2DLodEXT",
-				 _texture(ir_txl, es_lod_exists_in_stage, glsl_type::vec4_type,  glsl_type::sampler2D_type, glsl_type::vec2_type),
-				 NULL);
-	add_function("texture2DProjLodEXT",
-				 _texture(ir_txl, es_lod_exists_in_stage, glsl_type::vec4_type,  glsl_type::sampler2D_type, glsl_type::vec3_type, TEX_PROJECT),
-				 _texture(ir_txl, es_lod_exists_in_stage, glsl_type::vec4_type,  glsl_type::sampler2D_type, glsl_type::vec4_type, TEX_PROJECT),
-				 NULL);
-	add_function("textureCubeLodEXT",
-				 _texture(ir_txl, es_lod_exists_in_stage, glsl_type::vec4_type,  glsl_type::samplerCube_type, glsl_type::vec3_type),
-				 NULL);
-	
    add_function("shadow1D",
                 _texture(ir_tex, v110,         glsl_type::vec4_type,  glsl_type::sampler1DShadow_type, glsl_type::vec3_type),
                 _texture(ir_txb, v110_fs_only, glsl_type::vec4_type,  glsl_type::sampler1DShadow_type, glsl_type::vec3_type),
@@ -1863,9 +1826,6 @@ builtin_builder::create_builtins()
                 _texture(ir_tex, v110,         glsl_type::vec4_type,  glsl_type::sampler2DShadow_type, glsl_type::vec3_type),
                 _texture(ir_txb, v110_fs_only, glsl_type::vec4_type,  glsl_type::sampler2DShadow_type, glsl_type::vec3_type),
                 NULL);
-	add_function("shadow2DEXT",
-				 _texture(ir_tex, es_shadow_samplers, glsl_type::float_type,  glsl_type::sampler2DShadow_type, glsl_type::vec3_type),
-				 NULL);
 
    add_function("shadow2DArray",
                 _texture(ir_tex, texture_array,    glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
@@ -1881,9 +1841,6 @@ builtin_builder::create_builtins()
                 _texture(ir_tex, v110,         glsl_type::vec4_type,  glsl_type::sampler2DShadow_type, glsl_type::vec4_type, TEX_PROJECT),
                 _texture(ir_txb, v110_fs_only, glsl_type::vec4_type,  glsl_type::sampler2DShadow_type, glsl_type::vec4_type, TEX_PROJECT),
                 NULL);
-	add_function("shadow2DProjEXT",
-				 _texture(ir_tex, es_shadow_samplers, glsl_type::float_type,  glsl_type::sampler2DShadow_type, glsl_type::vec4_type, TEX_PROJECT),
-				 NULL);
 
    add_function("shadow1DLod",
                 _texture(ir_txl, v110_lod, glsl_type::vec4_type,  glsl_type::sampler1DShadow_type, glsl_type::vec3_type),
@@ -1942,18 +1899,7 @@ builtin_builder::create_builtins()
    add_function("textureCubeGradARB",
                 _texture(ir_txd, shader_texture_lod, glsl_type::vec4_type,  glsl_type::samplerCube_type, glsl_type::vec3_type),
                 NULL);
-	
-	add_function("texture2DGradEXT",
-				 _texture(ir_txd, es_shader_texture_lod, glsl_type::vec4_type,  glsl_type::sampler2D_type, glsl_type::vec2_type),
-				 NULL);
-	add_function("texture2DProjGradEXT",
-				 _texture(ir_txd, es_shader_texture_lod, glsl_type::vec4_type,  glsl_type::sampler2D_type, glsl_type::vec3_type, TEX_PROJECT),
-				 _texture(ir_txd, es_shader_texture_lod, glsl_type::vec4_type,  glsl_type::sampler2D_type, glsl_type::vec4_type, TEX_PROJECT),
-				 NULL);
-	add_function("textureCubeGradEXT",
-				 _texture(ir_txd, es_shader_texture_lod, glsl_type::vec4_type,  glsl_type::samplerCube_type, glsl_type::vec3_type),
-				 NULL);
-	
+
    add_function("shadow1DGradARB",
                 _texture(ir_txd, shader_texture_lod, glsl_type::vec4_type,  glsl_type::sampler1DShadow_type, glsl_type::vec3_type),
                 NULL);
@@ -2257,13 +2203,13 @@ builtin_builder::add_function(const char *name, ...)
 ir_variable *
 builtin_builder::in_var(const glsl_type *type, const char *name)
 {
-   return new(mem_ctx) ir_variable(type, name, ir_var_function_in, glsl_precision_undefined);
+   return new(mem_ctx) ir_variable(type, name, ir_var_function_in);
 }
 
 ir_variable *
 builtin_builder::out_var(const glsl_type *type, const char *name)
 {
-   return new(mem_ctx) ir_variable(type, name, ir_var_function_out, glsl_precision_undefined);
+   return new(mem_ctx) ir_variable(type, name, ir_var_function_out);
 }
 
 ir_constant *
@@ -2322,7 +2268,7 @@ builtin_builder::new_sig(const glsl_type *return_type,
    va_list ap;
 
    ir_function_signature *sig =
-      new(mem_ctx) ir_function_signature(return_type, glsl_precision_undefined, avail);
+      new(mem_ctx) ir_function_signature(return_type, avail);
 
    exec_list plist;
    va_start(ap, num_params);
@@ -2488,7 +2434,7 @@ builtin_builder::_atan2(const glsl_type *type)
 
    ir_variable *vec_result = body.make_temp(type, "vec_result");
    ir_variable *r = body.make_temp(glsl_type::float_type, "r");
-   for (unsigned i = 0; i < type->vector_elements; i++) {
+   for (int i = 0; i < type->vector_elements; i++) {
       ir_variable *y = body.make_temp(glsl_type::float_type, "y");
       ir_variable *x = body.make_temp(glsl_type::float_type, "x");
       body.emit(assign(y, swizzle(vec_y, i, 1)));
@@ -2738,12 +2684,12 @@ builtin_builder::_step(const glsl_type *edge_type, const glsl_type *x_type)
       body.emit(assign(t, b2f(gequal(x, edge))));
    } else if (edge_type->vector_elements == 1) {
       /* x is a vector but edge is a float */
-      for (unsigned i = 0; i < x_type->vector_elements; i++) {
+      for (int i = 0; i < x_type->vector_elements; i++) {
          body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), edge)), 1 << i));
       }
    } else {
       /* Both are vectors */
-      for (unsigned i = 0; i < x_type->vector_elements; i++) {
+      for (int i = 0; i < x_type->vector_elements; i++) {
          body.emit(assign(t, b2f(gequal(swizzle(x, i, 1), swizzle(edge, i, 1))),
                           1 << i));
       }
@@ -2795,7 +2741,7 @@ builtin_builder::_isinf(const glsl_type *type)
    MAKE_SIG(glsl_type::bvec(type->vector_elements), v130, 1, x);
 
    ir_constant_data infinities;
-   for (unsigned i = 0; i < type->vector_elements; i++) {
+   for (int i = 0; i < type->vector_elements; i++) {
       infinities.f[i] = std::numeric_limits<float>::infinity();
    }
 
@@ -2995,7 +2941,7 @@ builtin_builder::_normalize(const glsl_type *type)
    if (type->vector_elements == 1) {
       body.emit(ret(sign(x)));
    } else {
-      body.emit(ret(expr(ir_unop_normalize, x)));
+      body.emit(ret(mul(x, rsq(dot(x, x)))));
    }
 
    return sig;
@@ -3084,7 +3030,7 @@ builtin_builder::_matrixCompMult(const glsl_type *type)
    MAKE_SIG(type, always_available, 2, x, y);
 
    ir_variable *z = body.make_temp(type, "z");
-   for (unsigned i = 0; i < type->matrix_columns; i++) {
+   for (int i = 0; i < type->matrix_columns; i++) {
       body.emit(assign(array_ref(z, i), mul(array_ref(x, i), array_ref(y, i))));
    }
    body.emit(ret(z));
@@ -3100,7 +3046,7 @@ builtin_builder::_outerProduct(const glsl_type *type)
    MAKE_SIG(type, v120, 2, c, r);
 
    ir_variable *m = body.make_temp(type, "m");
-   for (unsigned i = 0; i < type->matrix_columns; i++) {
+   for (int i = 0; i < type->matrix_columns; i++) {
       body.emit(assign(array_ref(m, i), mul(c, swizzle(r, i, 1))));
    }
    body.emit(ret(m));
@@ -3120,8 +3066,8 @@ builtin_builder::_transpose(const glsl_type *orig_type)
    MAKE_SIG(transpose_type, v120, 1, m);
 
    ir_variable *t = body.make_temp(transpose_type, "t");
-   for (unsigned i = 0; i < orig_type->matrix_columns; i++) {
-      for (unsigned j = 0; j < orig_type->vector_elements; j++) {
+   for (int i = 0; i < orig_type->matrix_columns; i++) {
+      for (int j = 0; j < orig_type->vector_elements; j++) {
          body.emit(assign(array_ref(t, j),
                           matrix_elt(m, i, j),
                           1 << i));
@@ -3605,17 +3551,15 @@ builtin_builder::_texture(ir_texture_opcode opcode,
 
    const int coord_size = sampler_type->sampler_coordinate_components();
 
-   // removed for glsl optimizer
-   //if (coord_size == coord_type->vector_elements) {
+   if (coord_size == coord_type->vector_elements) {
       tex->coordinate = var_ref(P);
-   //} else {
-   //   /* The incoming coordinate also has the projector or shadow comparitor,
-   //    * so we need to swizzle those away.
-   //    */
-   //   tex->coordinate = swizzle_for_size(P, coord_size);
-   //}
+   } else {
+      /* The incoming coordinate also has the projector or shadow comparitor,
+       * so we need to swizzle those away.
+       */
+      tex->coordinate = swizzle_for_size(P, coord_size);
+   }
 
-#if 0 // removed for glsl optimizer
    /* The projector is always in the last component. */
    if (flags & TEX_PROJECT)
       tex->projector = swizzle(P, coord_type->vector_elements - 1, 1);
@@ -3635,7 +3579,6 @@ builtin_builder::_texture(ir_texture_opcode opcode,
          tex->shadow_comparitor = swizzle(P, MAX2(coord_size, SWIZZLE_Z), 1);
       }
    }
-#endif // #if 0
 
    if (opcode == ir_txl) {
       ir_variable *lod = in_var(glsl_type::float_type, "lod");
@@ -3655,7 +3598,7 @@ builtin_builder::_texture(ir_texture_opcode opcode,
       int offset_size = coord_size - (sampler_type->sampler_array ? 1 : 0);
       ir_variable *offset =
          new(mem_ctx) ir_variable(glsl_type::ivec(offset_size), "offset",
-                                  (flags & TEX_OFFSET) ? ir_var_const_in : ir_var_function_in, glsl_precision_undefined);
+                                  (flags & TEX_OFFSET) ? ir_var_const_in : ir_var_function_in);
       sig->parameters.push_tail(offset);
       tex->offset = var_ref(offset);
    }
@@ -3663,7 +3606,7 @@ builtin_builder::_texture(ir_texture_opcode opcode,
    if (flags & TEX_OFFSET_ARRAY) {
       ir_variable *offsets =
          new(mem_ctx) ir_variable(glsl_type::get_array_instance(glsl_type::ivec2_type, 4),
-                                  "offsets", ir_var_const_in, glsl_precision_undefined);
+                                  "offsets", ir_var_const_in);
       sig->parameters.push_tail(offsets);
       tex->offset = var_ref(offsets);
    }
@@ -3671,7 +3614,7 @@ builtin_builder::_texture(ir_texture_opcode opcode,
    if (opcode == ir_tg4) {
       if (flags & TEX_COMPONENT) {
          ir_variable *component =
-            new(mem_ctx) ir_variable(glsl_type::int_type, "comp", ir_var_const_in, glsl_precision_undefined);
+            new(mem_ctx) ir_variable(glsl_type::int_type, "comp", ir_var_const_in);
          sig->parameters.push_tail(component);
          tex->lod_info.component = var_ref(component);
       }
@@ -3706,7 +3649,7 @@ builtin_builder::_textureCubeArrayShadow()
    tex->set_sampler(var_ref(s), glsl_type::float_type);
 
    tex->coordinate = var_ref(P);
-   //tex->shadow_comparitor = var_ref(compare); //@TODO ?
+   tex->shadow_comparitor = var_ref(compare);
 
    body.emit(ret(tex));
 
@@ -3744,7 +3687,7 @@ builtin_builder::_texelFetch(builtin_available_predicate avail,
 
    if (offset_type != NULL) {
       ir_variable *offset =
-         new(mem_ctx) ir_variable(offset_type, "offset", ir_var_const_in, glsl_precision_undefined);
+         new(mem_ctx) ir_variable(offset_type, "offset", ir_var_const_in);
       sig->parameters.push_tail(offset);
       tex->offset = var_ref(offset);
    }

@@ -87,8 +87,6 @@ public:
    virtual ir_visitor_status visit(class ir_variable *);
    virtual ir_visitor_status visit(class ir_constant *);
    virtual ir_visitor_status visit(class ir_loop_jump *);
-   virtual ir_visitor_status visit(class ir_precision_statement *);
-   virtual ir_visitor_status visit(class ir_typedecl_statement *);
    virtual ir_visitor_status visit(class ir_emit_vertex *);
    virtual ir_visitor_status visit(class ir_end_primitive *);
 
@@ -107,6 +105,17 @@ public:
     * that couldn't just be done in the visit method.
     */
    virtual ir_visitor_status visit(class ir_dereference_variable *);
+
+   /**
+    * In order to be consistent with ir_dereference_variable being treated as a
+    * leaf, phi nodes are treated as a leaf as well, even though it defines an
+    * ir_variable.
+    */
+   virtual ir_visitor_status visit(class ir_phi *);
+   virtual ir_visitor_status visit(class ir_phi_if *);
+   virtual ir_visitor_status visit(class ir_phi_loop_begin *);
+   virtual ir_visitor_status visit(class ir_phi_loop_end *);
+
    /*@}*/
 
    /**

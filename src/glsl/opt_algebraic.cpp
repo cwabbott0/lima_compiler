@@ -109,15 +109,9 @@ static void
 update_type(ir_expression *ir)
 {
    if (ir->operands[0]->type->is_vector())
-   {
       ir->type = ir->operands[0]->type;
-	  ir->set_precision (ir->operands[0]->get_precision());
-   }
    else
-   {
       ir->type = ir->operands[1]->type;
-	  ir->set_precision (ir->operands[1]->get_precision());
-   }
 }
 
 void
@@ -224,6 +218,11 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       this->mem_ctx = ralloc_parent(ir);
 
    switch (ir->operation) {
+   case ir_unop_bit_not:
+      if (op_expr[0] && op_expr[0]->operation == ir_unop_bit_not)
+         return op_expr[0]->operands[0];
+      break;
+
    case ir_unop_abs:
       if (op_expr[0] == NULL)
 	 break;
@@ -244,14 +243,42 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       if (op_expr[0]->operation == ir_unop_neg) {
          return op_expr[0]->operands[0];
       }
-	   if (op_expr[0] && op_expr[0]->operation == ir_binop_sub) {
-		   // -(A-B) => (B-A)
-		   this->progress = true;
-		   return new(mem_ctx) ir_expression(ir_binop_sub,
-											 ir->type,
-											 op_expr[0]->operands[1],
-											 op_expr[0]->operands[0]);
-	   }
+      break;
+
+   case ir_unop_exp:
+      if (op_expr[0] == NULL)
+	 break;
+
+      if (op_expr[0]->operation == ir_unop_log) {
+         return op_expr[0]->operands[0];
+      }
+      break;
+
+   case ir_unop_log:
+      if (op_expr[0] == NULL)
+	 break;
+
+      if (op_expr[0]->operation == ir_unop_exp) {
+         return op_expr[0]->operands[0];
+      }
+      break;
+
+   case ir_unop_exp2:
+      if (op_expr[0] == NULL)
+	 break;
+
+      if (op_expr[0]->operation == ir_unop_log2) {
+         return op_expr[0]->operands[0];
+      }
+      break;
+
+   case ir_unop_log2:
+      if (op_expr[0] == NULL)
+	 break;
+
+      if (op_expr[0]->operation == ir_unop_exp2) {
+         return op_expr[0]->operands[0];
+      }
       break;
 
    case ir_unop_logic_not: {
@@ -299,12 +326,6 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
 	 reassociate_constant(ir, 0, op_const[0], op_expr[1]);
       if (op_const[1] && !op_const[0])
 	 reassociate_constant(ir, 1, op_const[1], op_expr[0]);
-		   
-		// A + (-B) => A-B
-	   if (op_expr[1] && op_expr[1]->operation == ir_unop_neg) {
-		   this->progress = true;
-		   return sub(ir->operands[0], op_expr[1]->operands[0]);
-	   }
 
       /* Replace (-x + y) * a + x and commutative variations with lrp(x, y, a).
        *
@@ -499,6 +520,10 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       if (is_vec_one(op_const[0]))
          return op_const[0];
 
+      /* x^1 == x */
+      if (is_vec_one(op_const[1]))
+         return ir->operands[0];
+
       /* pow(2,x) == exp2(x) */
       if (is_vec_two(op_const[0]))
          return expr(ir_unop_exp2, ir->operands[1]);
@@ -522,13 +547,35 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
 
       break;
 
+   case ir_triop_fma:
+      /* Operands are op0 * op1 + op2. */
+      if (is_vec_zero(op_const[0]) || is_vec_zero(op_const[1])) {
+         return ir->operands[2];
+      } else if (is_vec_zero(op_const[2])) {
+         return mul(ir->operands[0], ir->operands[1]);
+      } else if (is_vec_one(op_const[0])) {
+         return add(ir->operands[1], ir->operands[2]);
+      } else if (is_vec_one(op_const[1])) {
+         return add(ir->operands[0], ir->operands[2]);
+      }
+      break;
+
    case ir_triop_lrp:
       /* Operands are (x, y, a). */
       if (is_vec_zero(op_const[2])) {
          return ir->operands[0];
       } else if (is_vec_one(op_const[2])) {
          return ir->operands[1];
+      } else if (ir->operands[0]->equals(ir->operands[1])) {
+         return ir->operands[0];
       }
+      break;
+
+   case ir_triop_csel:
+      if (is_vec_one(op_const[0]))
+	 return ir->operands[1];
+      if (is_vec_zero(op_const[0]))
+	 return ir->operands[2];
       break;
 
    default:

@@ -173,13 +173,6 @@ private:
                   bool row_major, const glsl_type *record_type);
 };
 
-extern struct gl_shader *
-link_intrastage_shaders(void *mem_ctx,
-						struct gl_context *ctx,
-						struct gl_shader_program *prog,
-						struct gl_shader **shader_list,
-						unsigned num_shaders);
-
 void
 linker_error(gl_shader_program *prog, const char *fmt, ...);
 

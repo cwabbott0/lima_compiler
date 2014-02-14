@@ -165,7 +165,6 @@ struct _mesa_glsl_parse_state {
 
    bool es_shader;
    unsigned language_version;
-   bool had_version_string;
    gl_shader_stage stage;
 
    /**
@@ -196,6 +195,21 @@ struct _mesa_glsl_parse_state {
     * specified.  Otherwise ignored.
     */
    GLenum gs_input_prim_type;
+
+   /**
+    * True if a compute shader input local size was specified using a layout
+    * directive.
+    *
+    * Note: this value is computed at ast_to_hir time rather than at parse
+    * time.
+    */
+   bool cs_input_local_size_specified;
+
+   /**
+    * If cs_input_local_size_specified is true, the local size that was
+    * specified.  Otherwise ignored.
+    */
+   unsigned cs_input_local_size[3];
 
    /** Output layout qualifiers from GLSL 1.50. (geometry shader controls)*/
    struct ast_type_qualifier *out_qualifier;
@@ -251,6 +265,10 @@ struct _mesa_glsl_parse_state {
       unsigned MaxFragmentAtomicCounters;
       unsigned MaxCombinedAtomicCounters;
       unsigned MaxAtomicBufferBindings;
+
+      /* ARB_compute_shader */
+      unsigned MaxComputeWorkGroupCount[3];
+      unsigned MaxComputeWorkGroupSize[3];
    } Const;
 
    /**
@@ -313,12 +331,6 @@ struct _mesa_glsl_parse_state {
    bool EXT_texture_array_warn;
    bool ARB_shader_texture_lod_enable;
    bool ARB_shader_texture_lod_warn;
-   bool EXT_shader_texture_lod_enable;
-   bool EXT_shader_texture_lod_warn;
-   bool EXT_shadow_samplers_enable;
-   bool EXT_shadow_samplers_warn;
-   bool EXT_frag_depth_enable;
-   bool EXT_frag_depth_warn;
    bool ARB_shader_stencil_export_enable;
    bool ARB_shader_stencil_export_warn;
    bool AMD_conservative_depth_enable;
@@ -363,6 +375,8 @@ struct _mesa_glsl_parse_state {
    bool AMD_shader_trinary_minmax_warn;
    bool ARB_viewport_array_enable;
    bool ARB_viewport_array_warn;
+   bool ARB_compute_shader_enable;
+   bool ARB_compute_shader_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */

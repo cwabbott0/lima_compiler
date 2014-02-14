@@ -78,15 +78,12 @@ enum glsl_interface_packing {
    GLSL_INTERFACE_PACKING_PACKED
 };
 
-enum glsl_precision {
-	glsl_precision_high = 0,
-	glsl_precision_medium,
-	glsl_precision_low,
-	glsl_precision_undefined,
-};
-
 #ifdef __cplusplus
-#include "../mesa/main/glminimal.h"
+#ifdef __APPLE__
+#include <OpenGL/GL.h>
+#else
+#include "GL/gl.h"
+#endif /* __APPLE__ */
 #include "ralloc.h"
 
 struct glsl_type {
@@ -511,9 +508,6 @@ struct glsl_type {
     */
    const glsl_type *field_type(const char *name) const;
 
-   const glsl_precision field_precision(const char *name) const;
-
-
    /**
     * Get the location of a filed within a record type
     */
@@ -630,7 +624,6 @@ struct glsl_struct_field {
    const struct glsl_type *type;
    const char *name;
    bool row_major;
-   glsl_precision precision;
 
    /**
     * For interface blocks, gl_varying_slot corresponding to the input/output

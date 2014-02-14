@@ -93,60 +93,6 @@ prototype_string(const glsl_type *return_type, const char *name,
    return str;
 }
 
-
-static glsl_precision precision_for_call (const ir_function_signature* sig, glsl_precision max_prec, glsl_precision first_prec)
-{
-	if (sig->precision != glsl_precision_undefined)
-		return sig->precision;
-	
-	// if return type is boolean, treat as lowp
-	if (sig->return_type->base_type == GLSL_TYPE_BOOL)
-		return glsl_precision_low;
-	
-	// if it's a built-in texture function, precision comes from sampler (1st param) precision
-	if (sig->is_builtin())
-	{
-		if (strncmp (sig->function_name(), "texture", 7) == 0)
-			return first_prec;
-		if (strncmp (sig->function_name(), "shadow", 6) == 0)
-			return first_prec;
-	}
-	
-	// other built-in: max precision of parameters
-	if (sig->is_builtin())
-		return max_prec;
-	
-	// otherwise: undefined
-	return glsl_precision_undefined;	
-}
-
-
-static glsl_precision precision_for_call (const ir_function_signature* sig, exec_list *actual_parameters)
-{
-	glsl_precision prec_params_max = glsl_precision_undefined;
-	glsl_precision prec_params_first = glsl_precision_undefined;
-	int params_counter = 0;
-	
-	foreach_two_lists(formal_node, &sig->parameters,
-					  actual_node, actual_parameters) {
-		ir_rvalue *actual = (ir_rvalue *) actual_node;
-		ir_variable *formal = (ir_variable *) formal_node;
-		assert(actual != NULL);
-		assert(formal != NULL);
-		glsl_precision param_prec = (glsl_precision)formal->data.precision;
-		if (param_prec == glsl_precision_undefined)
-			param_prec = actual->get_precision();
-		prec_params_max = higher_precision (prec_params_max, param_prec);
-		if (params_counter == 0)
-			prec_params_first = param_prec;
-		
-		++params_counter;
-	}
-	
-	return precision_for_call (sig, prec_params_max, prec_params_first);
-}
-
-
 /**
  * Verify that 'out' and 'inout' actual parameters are lvalues.  Also, verify
  * that 'const_in' formal parameters (an extension in our IR) correspond to
@@ -243,7 +189,7 @@ verify_parameter_modes(_mesa_glsl_parse_state *state,
 static void
 fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
               exec_list *before_instructions, exec_list *after_instructions,
-              bool parameter_is_inout, glsl_precision prec)
+              bool parameter_is_inout)
 {
    ir_expression *const expr = actual->as_expression();
 
@@ -276,7 +222,7 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
     * additional conversion is needed in the post-call re-write.
     */
    ir_variable *tmp =
-      new(mem_ctx) ir_variable(formal_type, "inout_tmp", ir_var_temporary, prec);
+      new(mem_ctx) ir_variable(formal_type, "inout_tmp", ir_var_temporary);
 
    before_instructions->push_tail(tmp);
 
@@ -365,8 +311,7 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
 	 case ir_var_function_inout:
             fix_parameter(ctx, actual, formal->type,
                           instructions, &post_call_conversions,
-                          formal->data.mode == ir_var_function_inout,
-						  precision_for_call(sig,actual_parameters));
+                          formal->data.mode == ir_var_function_inout);
 	    break;
 	 default:
 	    assert (!"Illegal formal parameter mode");
@@ -396,7 +341,7 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
       var = new(ctx) ir_variable(sig->return_type,
 				 ralloc_asprintf(ctx, "%s_retval",
 						 sig->function_name()),
-				 ir_var_temporary, precision_for_call(sig,actual_parameters));
+				 ir_var_temporary);
       instructions->push_tail(var);
 
       deref = new(ctx) ir_dereference_variable(var);
@@ -742,7 +687,7 @@ process_vec_mat_constructor(exec_list *instructions,
       return new(ctx) ir_constant(constructor_type, &actual_parameters);
 
    ir_variable *var = new(ctx) ir_variable(constructor_type, "vec_mat_ctor",
-                                           ir_var_temporary, glsl_precision_undefined);
+                                           ir_var_temporary);
    instructions->push_tail(var);
 
    int i = 0;
@@ -863,7 +808,7 @@ process_array_constructor(exec_list *instructions,
       return new(ctx) ir_constant(constructor_type, &actual_parameters);
 
    ir_variable *var = new(ctx) ir_variable(constructor_type, "array_ctor",
-					   ir_var_temporary, glsl_precision_undefined);
+					   ir_var_temporary);
    instructions->push_tail(var);
 
    int i = 0;
@@ -925,14 +870,14 @@ single_scalar_parameter(exec_list *parameters)
  * body.
  */
 ir_rvalue *
-emit_inline_vector_constructor(const glsl_type *type, unsigned ast_precision,
+emit_inline_vector_constructor(const glsl_type *type,
 			       exec_list *instructions,
 			       exec_list *parameters,
 			       void *ctx)
 {
    assert(!parameters->is_empty());
 
-   ir_variable *var = new(ctx) ir_variable(type, "vec_ctor", ir_var_temporary, (glsl_precision)ast_precision);
+   ir_variable *var = new(ctx) ir_variable(type, "vec_ctor", ir_var_temporary);
    instructions->push_tail(var);
 
    /* There are two kinds of vector constructors.
@@ -949,7 +894,6 @@ emit_inline_vector_constructor(const glsl_type *type, unsigned ast_precision,
       ir_rvalue *first_param = (ir_rvalue *)parameters->head;
       ir_rvalue *rhs = new(ctx) ir_swizzle(first_param, 0, 0, 0, 0,
 					   lhs_components);
-      var->data.precision = higher_precision ((glsl_precision)var->data.precision, rhs->get_precision());
       ir_dereference_variable *lhs = new(ctx) ir_dereference_variable(var);
       const unsigned mask = (1U << lhs_components) - 1;
 
@@ -967,7 +911,6 @@ emit_inline_vector_constructor(const glsl_type *type, unsigned ast_precision,
 
       foreach_list(node, parameters) {
 	 ir_rvalue *param = (ir_rvalue *) node;
-	 var->data.precision = higher_precision ((glsl_precision)var->data.precision, param->get_precision());
 	 unsigned rhs_components = param->type->components();
 
 	 /* Do not try to assign more components to the vector than it has!
@@ -1116,14 +1059,14 @@ assign_to_matrix_column(ir_variable *var, unsigned column, unsigned row_base,
  * body.
  */
 ir_rvalue *
-emit_inline_matrix_constructor(const glsl_type *type, int ast_precision,
+emit_inline_matrix_constructor(const glsl_type *type,
 			       exec_list *instructions,
 			       exec_list *parameters,
 			       void *ctx)
 {
    assert(!parameters->is_empty());
 
-   ir_variable *var = new(ctx) ir_variable(type, "mat_ctor", ir_var_temporary, (glsl_precision)ast_precision);
+   ir_variable *var = new(ctx) ir_variable(type, "mat_ctor", ir_var_temporary);
    instructions->push_tail(var);
 
    /* There are three kinds of matrix constructors.
@@ -1147,7 +1090,7 @@ emit_inline_matrix_constructor(const glsl_type *type, int ast_precision,
        */
       ir_variable *rhs_var =
 	 new(ctx) ir_variable(glsl_type::vec4_type, "mat_ctor_vec",
-			      ir_var_temporary, (glsl_precision)ast_precision);
+			      ir_var_temporary);
       instructions->push_tail(rhs_var);
 
       ir_constant_data zero;
@@ -1260,7 +1203,7 @@ emit_inline_matrix_constructor(const glsl_type *type, int ast_precision,
        */
       ir_variable *const rhs_var =
 	 new(ctx) ir_variable(first_param->type, "mat_ctor_mat",
-			      ir_var_temporary, (glsl_precision)ast_precision);
+			      ir_var_temporary);
       instructions->push_tail(rhs_var);
 
       ir_dereference *const rhs_var_ref =
@@ -1321,7 +1264,7 @@ emit_inline_matrix_constructor(const glsl_type *type, int ast_precision,
 	  * generate a temporary and copy the paramter there.
 	  */
 	 ir_variable *rhs_var =
-	    new(ctx) ir_variable(rhs->type, "mat_ctor_vec", ir_var_temporary, (glsl_precision)ast_precision);
+	    new(ctx) ir_variable(rhs->type, "mat_ctor_vec", ir_var_temporary);
 	 instructions->push_tail(rhs_var);
 
 	 ir_dereference *rhs_var_ref =
@@ -1388,7 +1331,7 @@ emit_inline_record_constructor(const glsl_type *type,
 			       void *mem_ctx)
 {
    ir_variable *const var =
-      new(mem_ctx) ir_variable(type, "record_ctor", ir_var_temporary, glsl_precision_undefined);
+      new(mem_ctx) ir_variable(type, "record_ctor", ir_var_temporary);
    ir_dereference_variable *const d = new(mem_ctx) ir_dereference_variable(var);
 
    instructions->push_tail(var);
@@ -1646,14 +1589,14 @@ ast_function_expression::hir(exec_list *instructions,
 
 	    /* Create a temporary containing the matrix. */
 	    ir_variable *var = new(ctx) ir_variable(matrix->type, "matrix_tmp",
-						    ir_var_temporary, matrix->get_precision());
+						    ir_var_temporary);
 	    instructions->push_tail(var);
 	    instructions->push_tail(new(ctx) ir_assignment(new(ctx)
 	       ir_dereference_variable(var), matrix, NULL));
 	    var->constant_value = matrix->constant_expression_value();
 
 	    /* Replace the matrix with dereferences of its columns. */
-	    for (int i = 0; i < (int)matrix->type->matrix_columns; i++) {
+	    for (int i = 0; i < matrix->type->matrix_columns; i++) {
 	       matrix->insert_before(new (ctx) ir_dereference_array(var,
 		  new(ctx) ir_constant(i)));
 	    }
@@ -1698,13 +1641,13 @@ ast_function_expression::hir(exec_list *instructions,
 	 return dereference_component((ir_rvalue *) actual_parameters.head,
 				      0);
       } else if (constructor_type->is_vector()) {
-	 return emit_inline_vector_constructor(constructor_type, ast_precision_none, // TODO: type->precision,
+	 return emit_inline_vector_constructor(constructor_type,
 					       instructions,
 					       &actual_parameters,
 					       ctx);
       } else {
 	 assert(constructor_type->is_matrix());
-	 return emit_inline_matrix_constructor(constructor_type, ast_precision_none, // TODO: type->precision,
+	 return emit_inline_matrix_constructor(constructor_type,
 					       instructions,
 					       &actual_parameters,
 					       ctx);
