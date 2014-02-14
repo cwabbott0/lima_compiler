@@ -41,7 +41,6 @@ SRC_CXX = ast_array_index.cpp \
 	ir_print_visitor.cpp \
 	ir_reader.cpp \
 	ir_rvalue_visitor.cpp \
-	ir_stats.cpp \
 	ir_validate.cpp \
 	ir_variable_refcount.cpp \
 	loop_analysis.cpp \
