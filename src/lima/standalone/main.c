@@ -34,6 +34,8 @@
 "\n" \
 "options:\n" \
 "\t--type (-t) [vert|frag] -- choose which kind of shader\n" \
+"\t--dump-hir -- print the GLSL IR before optimization\n" \
+"\t--dump-lir -- print the GLSL IR after optimization\n" \
 "\t--dump-asm (-d) -- print out the resulting assembly\n" \
 "\t--syntax [verbose|explicit|decompile] -- " \
 "choose the syntax for the disassembly\n\n" \
@@ -54,14 +56,51 @@
 "\t--output (-o) -- the output file. Defaults to out.mbs\n" \
 "\t--help (-h) -- print this message and quit.\n"
 
-void usage(void)
+static void usage(void)
 {
 	fprintf(stderr, USAGE);
 }
 
+static const char* read_file(const char* path)
+{
+	FILE* fp = fopen(path, "rb");
+	if (!fp) return NULL;
+	
+	if (fseek(fp, 0, SEEK_END) != 0)
+	{
+		fclose(fp);
+		return NULL;
+	}
+	long fsize = ftell(fp);
+	if ((fsize <= 0)
+		|| (fseek(fp, 0, SEEK_SET) != 0))
+	{
+		fclose(fp);
+		return NULL;
+	}
+	
+	char* data = (char*)malloc(fsize + 1);
+	if (!data)
+	{
+		fclose(fp);
+		return NULL;
+	}
+	
+	if (fread(data, fsize, 1, fp) != 1)
+	{
+		fclose(fp);
+		free(data);
+		return NULL;
+	}
+	data[fsize] = '\0';
+	
+	fclose(fp);
+	return data;
+}
+
 int main(int argc, char** argv)
 {
-	bool dump_asm = false;
+	bool dump_asm = false, dump_hir = false, dump_lir = false;
 	lima_shader_stage_e stage = lima_shader_stage_unknown;
 	lima_asm_syntax_e syntax = lima_asm_syntax_unknown;
 	char* outfile = NULL;
@@ -69,6 +108,8 @@ int main(int argc, char** argv)
 	
 	static struct option long_options[] = {
 		{"type",     required_argument, NULL, 't'},
+		{"dump-hir", no_argument,       NULL, 'i'},
+		{"dump-lir", no_argument,       NULL, 'l'},
 		{"dump-asm", no_argument,       NULL, 'd'},
 		{"syntax",   required_argument, NULL, 's'},
 		{"output",   required_argument, NULL, 'o'},
@@ -102,6 +143,14 @@ int main(int argc, char** argv)
 			
 			case 'd':
 				dump_asm = true;
+				break;
+			
+			case 'i':
+				dump_hir = true;
+				break;
+				
+			case 'l':
+				dump_lir = true;
 				break;
 				
 			case 's':
@@ -185,6 +234,39 @@ int main(int argc, char** argv)
 	infile = argv[optind];
 	if (!outfile)
 		outfile = "out.mbs";
+	
+	const char* source = read_file(infile);
+	if (!source)
+	{
+		fprintf(stderr, "Error: could not read input file %s", infile);
+		usage();
+		exit(1);
+	}
+	
+	lima_shader_t* shader = lima_shader_create(stage);
+	lima_shader_parse(shader, source);
+	if (lima_shader_error(shader))
+	{
+		fprintf(stderr, "There were error(s) during compilation.\n");
+		fprintf(stderr, "Info log:\n%s", lima_shader_info_log(shader));
+		exit(1);
+	}
+	
+	if (dump_hir)
+	{
+		printf("HIR:\n\n");
+		lima_shader_print_glsl(shader);
+		printf("\n\n");
+	}
+	
+	lima_shader_optimize(shader);
+	
+	if (dump_lir)
+	{
+		printf("LIR:\n\n");
+		lima_shader_print_glsl(shader);
+		printf("\n\n");
+	}
 	
 	return 0;
 }
