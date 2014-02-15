@@ -1,7 +1,7 @@
 /* Author(s):
  *   Connor Abbott
  *
- * Copyright (c) 2013 Connor Abbott (connor@abbott.cx)
+ * Copyright (c) 2014 Connor Abbott (connor@abbott.cx)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,13 @@
  * THE SOFTWARE.
  */
 
+#ifndef __SHADER_H__
+#define __SHADER_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
 	lima_shader_stage_vertex,
 	lima_shader_stage_fragment,
@@ -34,3 +41,42 @@ typedef enum {
 	lima_asm_syntax_decompile,
 	lima_asm_syntax_unknown
 } lima_asm_syntax_e;
+
+struct lima_shader_s;
+typedef struct lima_shader_s lima_shader_t;
+
+lima_shader_t* lima_shader_create(lima_shader_stage_e stage);
+void lima_shader_delete(lima_shader_t* shader);
+
+/*
+ * runs the compiler frontend, after running this all compiler errors should
+ * be found
+ */
+
+bool lima_shader_parse(lima_shader_t* shader, const char* source);
+
+/* run the optimization passes */
+
+void lima_shader_optimize(lima_shader_t* shader);
+
+/* print out the GLSL IR */
+
+void lima_shader_print_glsl(lima_shader_t* shader);
+
+/* were there compiler errors? */
+
+bool lima_shader_error(lima_shader_t* shader);
+
+/*
+ * Get the info log after running lima_shader_parse(). The returned string
+ * is owned by the shader, and will be freed when lima_shader_delete() is
+ * called.
+ */
+
+const char* lima_shader_info_log(lima_shader_t* shader);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*__SHADER_H__*/

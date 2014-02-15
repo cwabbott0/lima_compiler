@@ -1,12 +1,18 @@
 CUR_DIR = $(shell pwd)
-CFLAGS += -Wall -Wextra -g -fPIC -I $(CUR_DIR)
+TOP_SRC_DIR = $(CUR_DIR)/..
+TOP_DIR = $(TOP_SRC_DIR)/..
+CFLAGS += -Wall -Wextra -g -fPIC
+CFLAGS += -I $(CUR_DIR)
+CFLAGS += -I $(TOP_SRC_DIR)/glsl
+CFLAGS += -I $(TOP_SRC_DIR)/mesa
+CFLAGS += -I $(TOP_DIR)/include
 
 NAME = limasc
 LIB_NAME = lib$(NAME).so
 STANDALONE_NAME = $(NAME)
 
 SOURCE  = . \
-	gp_ir pp_hir pp_lir gp pp
+	gp_ir pp_hir pp_lir gp pp shader
 
 STANDALONE_SOURCE = standalone
 
@@ -20,10 +26,14 @@ C_OBJECTS = $(patsubst %.c, %.o, $(foreach dir, $(SOURCE), $(wildcard $(dir)/*.c
 STANDALONE_OBJECTS = $(patsubst %.c, %.o, $(foreach dir, $(STANDALONE_SOURCE), $(wildcard $(dir)/*.c)))
 CXX_OBJECTS = $(patsubst %.cpp, %.o, $(foreach dir, $(SOURCE), $(wildcard $(dir)/*.cpp)))
 OBJECTS = $(Y_OBJECTS) $(L_OBJECTS) $(C_OBJECTS) $(CXX_OBJECTS)
+LIBGLSL = ../glsl/libglsl.a
 
 all: $(LIB_NAME) $(STANDALONE_NAME)
 lib: $(LIB_NAME)
 standalone: $(STANDALONE_NAME)
+
+$(LIBGLSL):
+	$(MAKE) all -C ../src/glsl
 
 clean:
 	rm -f $(OBJECTS)
@@ -42,17 +52,17 @@ $(L_SOURCE): %.c: %.l $(Y_SOURCE)
 $(C_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(CXX_OBJECTS): %.o: %.c
+$(CXX_OBJECTS): %.o: %.cpp
 	$(CXX) $(CFLAGS) -c -o $@ $<
 
 $(STANDALONE_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(STANDALONE_NAME): $(OBJECTS) $(STANDALONE_OBJECTS)
-	$(CC) -lm -g -o $@ $^
+$(STANDALONE_NAME): $(OBJECTS) $(STANDALONE_OBJECTS) $(LIBGLSL)
+	$(CXX) -lm -g -o $@ $^
 
-$(LIB_NAME): $(OBJECTS)
-	$(CC) -shared -lm -g -o $@ $^
+$(LIB_NAME): $(OBJECTS) $(LIBGLSL)
+	$(CXX) -shared -lm -g -o $@ $^
 
 
 
