@@ -76,8 +76,7 @@
 #include "ir_rvalue_visitor.h"
 
 extern "C" {
-#include "main/shaderobj.h"
-#include "main/enums.h"
+#include "standalone_scaffolding.h"
 }
 
 void linker_error(gl_shader_program *, const char *, ...);
@@ -1289,75 +1288,13 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
 
 
 /**
- * Perform cross-validation of compute shader local_size_{x,y,z} layout
- * qualifiers for the attached compute shaders, and propagate them to the
- * linked CS and linked shader program.
- */
-static void
-link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
-                                struct gl_shader *linked_shader,
-                                struct gl_shader **shader_list,
-                                unsigned num_shaders)
-{
-   for (int i = 0; i < 3; i++)
-      linked_shader->Comp.LocalSize[i] = 0;
-
-   /* This function is called for all shader stages, but it only has an effect
-    * for compute shaders.
-    */
-   if (linked_shader->Stage != MESA_SHADER_COMPUTE)
-      return;
-
-   /* From the ARB_compute_shader spec, in the section describing local size
-    * declarations:
-    *
-    *     If multiple compute shaders attached to a single program object
-    *     declare local work-group size, the declarations must be identical;
-    *     otherwise a link-time error results. Furthermore, if a program
-    *     object contains any compute shaders, at least one must contain an
-    *     input layout qualifier specifying the local work sizes of the
-    *     program, or a link-time error will occur.
-    */
-   for (unsigned sh = 0; sh < num_shaders; sh++) {
-      struct gl_shader *shader = shader_list[sh];
-
-      if (shader->Comp.LocalSize[0] != 0) {
-         if (linked_shader->Comp.LocalSize[0] != 0) {
-            for (int i = 0; i < 3; i++) {
-               if (linked_shader->Comp.LocalSize[i] !=
-                   shader->Comp.LocalSize[i]) {
-                  linker_error(prog, "compute shader defined with conflicting "
-                               "local sizes\n");
-                  return;
-               }
-            }
-         }
-         for (int i = 0; i < 3; i++)
-            linked_shader->Comp.LocalSize[i] = shader->Comp.LocalSize[i];
-      }
-   }
-
-   /* Just do the intrastage -> interstage propagation right now,
-    * since we already know we're in the right type of shader program
-    * for doing it.
-    */
-   if (linked_shader->Comp.LocalSize[0] == 0) {
-      linker_error(prog, "compute shader didn't declare local size\n");
-      return;
-   }
-   for (int i = 0; i < 3; i++)
-      prog->Comp.LocalSize[i] = linked_shader->Comp.LocalSize[i];
-}
-
-
-/**
  * Combine a group of shaders for a single stage to generate a linked shader
  *
  * \note
  * If this function is supplied a single shader, it is cloned, and the new
  * shader is returned.
  */
-static struct gl_shader *
+struct gl_shader *
 link_intrastage_shaders(void *mem_ctx,
 			struct gl_context *ctx,
 			struct gl_shader_program *prog,
@@ -1454,7 +1391,6 @@ link_intrastage_shaders(void *mem_ctx,
    ralloc_steal(linked, linked->UniformBlocks);
 
    link_gs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders);
-   link_cs_input_layout_qualifiers(prog, linked, shader_list, num_shaders);
 
    populate_symbol_table(linked);
 
@@ -2107,13 +2043,6 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       linker_error(prog, "Geometry shader must be linked with "
 		   "vertex shader\n");
       goto done;
-   }
-
-   /* Compute shaders have additional restrictions. */
-   if (num_shaders[MESA_SHADER_COMPUTE] > 0 &&
-       num_shaders[MESA_SHADER_COMPUTE] != prog->NumShaders) {
-      linker_error(prog, "Compute shaders may not be linked with any other "
-                   "type of shader\n");
    }
 
    for (unsigned int i = 0; i < MESA_SHADER_STAGES; i++) {

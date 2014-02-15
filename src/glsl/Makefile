@@ -5,8 +5,8 @@ CPPFLAGS += -I ../talloc \
 	-I ../mapi \
 	-I ../../include
 
-CXXFLAGS += -Wall -Os -fdata-sections -ffunction-sections
-CFLAGS += -Wall -Os -fdata-sections -ffunction-sections
+CXXFLAGS += -Wall -DDEBUG -Os -fdata-sections -ffunction-sections
+CFLAGS += -Wall -DDEBUG -Os -fdata-sections -ffunction-sections
 
 # This list gleaned from the VC project file. Update when needed
 SRC_CXX = ast_array_index.cpp \
@@ -43,6 +43,15 @@ SRC_CXX = ast_array_index.cpp \
 	ir_rvalue_visitor.cpp \
 	ir_validate.cpp \
 	ir_variable_refcount.cpp \
+	linker.cpp \
+	link_atomics.cpp \
+	link_functions.cpp \
+	link_interface_blocks.cpp \
+	link_uniform_block_active_visitor.cpp \
+	link_uniform_blocks.cpp \
+	link_uniform_initializers.cpp \
+	link_uniforms.cpp \
+	link_varyings.cpp \
 	loop_analysis.cpp \
 	loop_controls.cpp \
 	loop_unroll.cpp \
