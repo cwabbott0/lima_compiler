@@ -58,6 +58,10 @@ bool lima_shader_parse(lima_shader_t* shader, const char* source);
 /* run the optimization passes */
 
 void lima_shader_optimize(lima_shader_t* shader);
+	
+/* compile the code to binary */
+
+void lima_shader_compile(lima_shader_t* shader);
 
 /* print out the GLSL IR */
 

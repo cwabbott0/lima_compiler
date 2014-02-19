@@ -47,6 +47,9 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
 	if (!shader)
 		return NULL;
 	
+	if (!lima_shader_symbols_init(&shader->symbols))
+		goto err_mem;
+	
 	shader->stage = stage;
 	shader->parsed = false;
 	shader->info_log = NULL;
@@ -62,11 +65,11 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
 	
 	shader->mem_ctx = ralloc_context(NULL);
 	if (!shader->mem_ctx)
-		goto err_mem;
+		goto err_mem2;
 	
 	shader->whole_program = rzalloc(shader->mem_ctx, struct gl_shader_program);
 	if (!shader->whole_program)
-		goto err_mem;
+		goto err_mem2;
 	
 	shader->whole_program->InfoLog = ralloc_strdup(shader->mem_ctx, "");
 	shader->whole_program->NumShaders = 1;
@@ -76,11 +79,11 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
 											  shader->whole_program->NumShaders);
 	
 	if (!shader->whole_program->Shaders)
-		goto err_mem;
+		goto err_mem2;
 	
 	shader->shader = rzalloc(shader->mem_ctx, gl_shader);
 	if (!shader->shader)
-		goto err_mem;
+		goto err_mem2;
 	
 	shader->whole_program->Shaders[0] = shader->shader;
 	
@@ -104,9 +107,13 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
 	
 	return shader;
 	
+	err_mem2:
+	
+	lima_shader_symbols_delete(&shader->symbols);
+	ralloc_free(shader->mem_ctx);
+	
 	err_mem:
 	
-	ralloc_free(shader->mem_ctx);
 	free(shader);
 	return NULL;
 }
@@ -116,6 +123,7 @@ void lima_shader_delete(lima_shader_t* shader)
 	for (unsigned i = 0; i < MESA_SHADER_STAGES; i++)
 		ralloc_free(shader->whole_program->_LinkedShaders[i]);
 	ralloc_free(shader->mem_ctx);
+	lima_shader_symbols_delete(&shader->symbols);
 	free(shader);
 }
 
@@ -219,6 +227,14 @@ void lima_shader_optimize(lima_shader_t* shader)
 	}
 	
 	validate_ir_tree(shader->linked_shader->ir);
+}
+
+void lima_shader_compile(lima_shader_t* shader)
+{
+	lima_convert_symbols(shader);
+	lima_shader_symbols_print(&shader->symbols);
+	
+	//TODO
 }
 
 void lima_shader_print_glsl(lima_shader_t* shader)

@@ -24,6 +24,7 @@
 
 #include "shader.h"
 #include "program.h"
+#include "symbols/symbols.h"
 #include "glsl_parser_extras.h"
 #include "ralloc.h"
 
@@ -34,10 +35,11 @@ struct lima_shader_s
 	_mesa_glsl_parse_state* state;
 	struct gl_shader* shader, *linked_shader;
 	struct gl_shader_program* whole_program;
+	lima_shader_symbols_t symbols;
 	const char* info_log;
 	void* mem_ctx;
 	bool parsed; /* whether the shader was parsed/compiled without any errors */
 	bool errors;
 };
 
-
+void lima_convert_symbols(lima_shader_t* shader);

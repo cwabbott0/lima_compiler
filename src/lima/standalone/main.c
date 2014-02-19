@@ -268,5 +268,7 @@ int main(int argc, char** argv)
 		printf("\n\n");
 	}
 	
+	lima_shader_compile(shader);
+	
 	return 0;
 }
