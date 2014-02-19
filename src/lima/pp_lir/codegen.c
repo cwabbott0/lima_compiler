@@ -396,13 +396,13 @@ static void emit_uniform_instr(lima_pp_lir_instr_t* instr,
 		case lima_pp_hir_op_loadu_four_off:
 		case lima_pp_hir_op_loadt_four:
 		case lima_pp_hir_op_loadt_four_off:
-			field->alignment = true;
+			field->alignment = 2;
 			break;
 		case lima_pp_hir_op_loadu_one:
 		case lima_pp_hir_op_loadu_one_off:
 		case lima_pp_hir_op_loadt_one:
 		case lima_pp_hir_op_loadt_one_off:
-			field->alignment = false;
+			field->alignment = 0;
 			break;
 		default:
 			assert(0);
@@ -872,12 +872,12 @@ static void emit_temp_write_instr(lima_pp_lir_instr_t* instr,
 	{
 		case lima_pp_hir_op_storet_four:
 		case lima_pp_hir_op_storet_four_off:
-			field->temp_write.alignment = true;
+			field->temp_write.alignment = 2;
 			field->temp_write.source = source * 4;
 			break;
 		case lima_pp_hir_op_storet_one:
 		case lima_pp_hir_op_storet_one_off:
-			field->temp_write.alignment = false;
+			field->temp_write.alignment = 0;
 			field->temp_write.source = source * 4 + instr->sources[0].swizzle[0];
 			break;
 		default:
