@@ -36,11 +36,14 @@
  * Note: as a precondition, we require that all temporaries are part of arrays
  * (since temp->reg should have removed all non-array temporaries) and that
  * all arrays have an alignment of 4 (since this pass converts some of them
- * to an alignment of 1).
+ * to an alignment of 1 and 2).
  *
  * This pass should be run before register narrowing, since it can open up
  * opportunities for that pass.
  */
+
+
+//Given an index accessed, return the array that contains that index.
 
 unsigned get_array_index(lima_pp_hir_prog_t* prog, unsigned index)
 {
@@ -55,33 +58,34 @@ unsigned get_array_index(lima_pp_hir_prog_t* prog, unsigned index)
 	return 0;
 }
 
-static bool is_scalar_src(lima_pp_hir_cmd_t* cmd, unsigned src)
+static unsigned src_width(lima_pp_hir_cmd_t* cmd, unsigned src)
 {
 	if (cmd->op == lima_pp_hir_op_combine)
 	{
 		//For combines, this hack prevents any narrowing since that could
 		//change the semantics of the combine
-		return false;
+		return 4;
 	}
 	
-	unsigned i;
+	unsigned i, ret = 1;
 	for (i = 0; i < lima_pp_hir_arg_size(cmd, src); i++)
-		if (cmd->src[src].swizzle[i] > 0)
-			return false;
+		if (cmd->src[src].swizzle[i] + 1 > ret)
+			ret = cmd->src[src].swizzle[i] + 1;
 	
-	return true;
+	return ret;
 }
 
-static bool is_scalar_dest(lima_pp_hir_cmd_t* cmd)
+static unsigned dest_width(lima_pp_hir_cmd_t* cmd)
 {	
 	ptrset_iter_t iter = ptrset_iter_create(cmd->block_uses);
 	lima_pp_hir_block_t* block;
 	ptrset_iter_for_each(iter, block)
 	{
 		if (block->is_end && !block->discard && block->output == cmd)
-			return false; //Outputs use all 4 channels
+			return 1; //Outputs use all 4 channels
 	}
 	
+	unsigned ret = 1;
 	lima_pp_hir_cmd_t* use;
 	iter = ptrset_iter_create(cmd->cmd_uses);
 	ptrset_iter_for_each(iter, use)
@@ -92,23 +96,24 @@ static bool is_scalar_dest(lima_pp_hir_cmd_t* cmd)
 			if (use->src[src].constant || use->src[src].depend != cmd)
 				continue;
 			
-			if (!is_scalar_src(use, src))
-				return false;
+			unsigned new_width = src_width(use, src);
+			if (new_width > ret)
+				ret = new_width;
 		}
 	}
 	
-	return true;
+	return ret;
 }
 
-static bool* get_scalar_arrays(lima_pp_hir_prog_t* prog)
+static unsigned* get_array_width(lima_pp_hir_prog_t* prog)
 {
-	bool* ret = malloc(prog->num_arrays * sizeof(unsigned));
+	unsigned* ret = malloc(prog->num_arrays * sizeof(unsigned));
 	if (!ret)
 		return NULL;
 	
 	unsigned i;
 	for (i = 0; i < prog->num_arrays; i++)
-		ret[i] = true;
+		ret[i] = 1;
 	
 	lima_pp_hir_block_t* block;
 	pp_hir_prog_for_each_block(prog, block)
@@ -121,26 +126,28 @@ static bool* get_scalar_arrays(lima_pp_hir_prog_t* prog)
 				continue;
 			
 			unsigned index = get_array_index(prog, cmd->load_store_index);
-			if (ret[index])
-				ret[index] = ret[index] && is_scalar_dest(cmd);
+			unsigned new_width = dest_width(cmd);
+			if (ret[index] < new_width)
+				ret[index] = new_width;
 		}
 	}
 	
 	return ret;
 }
 
-static int* calc_array_offsets(lima_pp_hir_prog_t* prog, bool* scalar)
+static int* calc_array_offsets(lima_pp_hir_prog_t* prog, unsigned* width)
 {
-	int* ret = malloc(prog->num_arrays * sizeof(unsigned));
+	int* ret = malloc(prog->num_arrays * sizeof(int));
 	if (!ret)
 		return NULL;
 	
 	unsigned index = 0;
 	
+	//first assign arrays of width 3 and 4 (alignment 4)...
 	unsigned i;
 	for (i = 0; i < prog->num_arrays; i++)
 	{
-		if (scalar[i])
+		if (width[i] < 3)
 			continue;
 		
 		unsigned length = prog->arrays[i].end - prog->arrays[i].start + 1;
@@ -148,11 +155,25 @@ static int* calc_array_offsets(lima_pp_hir_prog_t* prog, bool* scalar)
 		index += length;
 	}
 	
-	index *= 4;
+	//... and then of width 2...
+	index *= 2;
 	
 	for (i = 0; i < prog->num_arrays; i++)
 	{
-		if (!scalar[i])
+		if (width[i] != 2)
+			continue;
+		
+		unsigned length = prog->arrays[i].end - prog->arrays[i].start + 1;
+		ret[i] = index - prog->arrays[i].start;
+		index += length;
+	}
+	
+	//... and then of width 1
+	index *= 2;
+	
+	for (i = 0; i < prog->num_arrays; i++)
+	{
+		if (width[i] != 1)
 			continue;
 		
 		unsigned length = prog->arrays[i].end - prog->arrays[i].start + 1;
@@ -165,7 +186,8 @@ static int* calc_array_offsets(lima_pp_hir_prog_t* prog, bool* scalar)
 	return ret;
 }
 
-static void rewrite_program(lima_pp_hir_prog_t* prog, int* offsets, bool* scalar)
+static void rewrite_program(lima_pp_hir_prog_t* prog, int* offsets,
+							unsigned* width)
 {
 	lima_pp_hir_block_t* block;
 	pp_hir_prog_for_each_block(prog, block)
@@ -180,7 +202,7 @@ static void rewrite_program(lima_pp_hir_prog_t* prog, int* offsets, bool* scalar
 			{
 				unsigned array = get_array_index(prog, cmd->load_store_index);
 				cmd->load_store_index += offsets[array];
-				if (scalar[array])
+				if (width[array] == 1)
 				{
 					switch (cmd->op)
 					{
@@ -207,40 +229,70 @@ static void rewrite_program(lima_pp_hir_prog_t* prog, int* offsets, bool* scalar
 							break;
 					}
 				}
+				else if (width[array] == 2)
+				{
+					switch (cmd->op)
+					{
+						case lima_pp_hir_op_loadt_four:
+							cmd->op = lima_pp_hir_op_loadt_two;
+							cmd->dst.reg.size = 1;
+							break;
+							
+						case lima_pp_hir_op_loadt_four_off:
+							cmd->op = lima_pp_hir_op_loadt_two_off;
+							cmd->dst.reg.size = 1;
+							break;
+							
+						case lima_pp_hir_op_storet_four:
+							cmd->op = lima_pp_hir_op_storet_two;
+							break;
+							
+						case lima_pp_hir_op_storet_four_off:
+							cmd->op = lima_pp_hir_op_storet_one_off;
+							break;
+							
+						default:
+							assert(0);
+							break;
+					}
+				}
 			}
 		}
 	}
 }
 
-static void rewrite_arrays(lima_pp_hir_prog_t* prog, int* offsets, bool* scalar)
+static void rewrite_arrays(lima_pp_hir_prog_t* prog, int* offsets,
+						   unsigned* width)
 {
 	unsigned i;
 	for (i = 0; i < prog->num_arrays; i++)
 	{
 		prog->arrays[i].start += offsets[i];
 		prog->arrays[i].end += offsets[i];
-		if (scalar)
+		if (width[i] == 1)
 			prog->arrays[i].alignment = lima_pp_hir_align_one;
+		else if (width[i] == 2)
+			prog->arrays[i].alignment = lima_pp_hir_align_two;
 	}
 }
 
 bool lima_pp_hir_compress_temp_arrays(lima_pp_hir_prog_t* prog)
 {
-	bool* scalar = get_scalar_arrays(prog);
-	if (!scalar)
+	unsigned* width = get_array_width(prog);
+	if (!width)
 		return false;
 	
-	int* offsets = calc_array_offsets(prog, scalar);
+	int* offsets = calc_array_offsets(prog, width);
 	if (!offsets)
 	{
-		free(scalar);
+		free(width);
 		return false;
 	}
 	
-	rewrite_program(prog, offsets, scalar);
-	rewrite_arrays(prog, offsets, scalar);
+	rewrite_program(prog, offsets, width);
+	rewrite_arrays(prog, offsets, width);
 	
-	free(scalar);
+	free(width);
 	free(offsets);
 	return true;
 }

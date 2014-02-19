@@ -328,10 +328,14 @@ lima_pp_lir_scheduled_instr_t* lima_pp_lir_instr_to_sched_instr(
 		/* uniform load slot */
 		case lima_pp_hir_op_loadu_one:
 		case lima_pp_hir_op_loadu_one_off:
+		case lima_pp_hir_op_loadu_two:
+		case lima_pp_hir_op_loadu_two_off:
 		case lima_pp_hir_op_loadu_four:
 		case lima_pp_hir_op_loadu_four_off:
 		case lima_pp_hir_op_loadt_one:
 		case lima_pp_hir_op_loadt_one_off:
+		case lima_pp_hir_op_loadt_two:
+		case lima_pp_hir_op_loadt_two_off:
 		case lima_pp_hir_op_loadt_four:
 		case lima_pp_hir_op_loadt_four_off:
 		{
@@ -515,6 +519,8 @@ lima_pp_lir_scheduled_instr_t* lima_pp_lir_instr_to_sched_instr(
 		/* temp write slot */
 		case lima_pp_hir_op_storet_one:
 		case lima_pp_hir_op_storet_one_off:
+		case lima_pp_hir_op_storet_two:
+		case lima_pp_hir_op_storet_two_off:
 		case lima_pp_hir_op_storet_four:
 		case lima_pp_hir_op_storet_four_off:
 		case lima_pp_hir_op_fb_color:

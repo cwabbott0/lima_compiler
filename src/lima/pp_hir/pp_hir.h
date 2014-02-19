@@ -180,6 +180,8 @@ typedef enum
 	
 	lima_pp_hir_op_loadu_one,
 	lima_pp_hir_op_loadu_one_off,
+	lima_pp_hir_op_loadu_two,
+	lima_pp_hir_op_loadu_two_off,
 	lima_pp_hir_op_loadu_four,
 	lima_pp_hir_op_loadu_four_off,
 	
@@ -194,11 +196,15 @@ typedef enum
 	
 	lima_pp_hir_op_loadt_one,
 	lima_pp_hir_op_loadt_one_off,
+	lima_pp_hir_op_loadt_two,
+	lima_pp_hir_op_loadt_two_off,
 	lima_pp_hir_op_loadt_four,
 	lima_pp_hir_op_loadt_four_off,
 	
 	lima_pp_hir_op_storet_one,
 	lima_pp_hir_op_storet_one_off,
+	lima_pp_hir_op_storet_two,
+	lima_pp_hir_op_storet_two_off,
 	lima_pp_hir_op_storet_four,
 	lima_pp_hir_op_storet_four_off,
 	
@@ -332,6 +338,7 @@ typedef struct lima_pp_hir_block_s
 typedef enum
 {
 	lima_pp_hir_align_one,
+	lima_pp_hir_align_two,
 	lima_pp_hir_align_four
 } lima_pp_hir_align_e;
 

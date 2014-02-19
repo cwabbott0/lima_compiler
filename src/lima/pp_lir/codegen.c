@@ -39,16 +39,28 @@ static bool is_scalar_temp_store(lima_pp_hir_op_e op)
 		op == lima_pp_hir_op_storet_one_off;
 }
 
-static bool is_vector_temp_load(lima_pp_hir_op_e op)
+static bool is_vec2_temp_load(lima_pp_hir_op_e op)
 {
-	return op == lima_pp_hir_op_loadt_four ||
-		op == lima_pp_hir_op_loadt_four_off;
+	return op == lima_pp_hir_op_loadt_two ||
+		op == lima_pp_hir_op_loadt_two_off;
 }
 
-static bool is_vector_temp_store(lima_pp_hir_op_e op)
+static bool is_vec2_temp_store(lima_pp_hir_op_e op)
+{
+	return op == lima_pp_hir_op_storet_two ||
+		op == lima_pp_hir_op_storet_two_off;
+}
+
+static bool is_vec4_temp_load(lima_pp_hir_op_e op)
+{
+	return op == lima_pp_hir_op_loadt_four ||
+	op == lima_pp_hir_op_loadt_four_off;
+}
+
+static bool is_vec4_temp_store(lima_pp_hir_op_e op)
 {
 	return op == lima_pp_hir_op_storet_four ||
-		op == lima_pp_hir_op_storet_four_off;
+	op == lima_pp_hir_op_storet_four_off;
 }
 
 static void offset_temporaries(lima_pp_lir_prog_t* prog)
@@ -65,7 +77,9 @@ static void offset_temporaries(lima_pp_lir_prog_t* prog)
 			{
 				if (is_scalar_temp_load(instr->uniform_instr->op))
 					instr->uniform_instr->load_store_index += offset * 4;
-				if (is_vector_temp_load(instr->uniform_instr->op))
+				if (is_vec2_temp_load(instr->uniform_instr->op))
+					instr->uniform_instr->load_store_index += offset * 2;
+				if (is_vec4_temp_load(instr->uniform_instr->op))
 					instr->uniform_instr->load_store_index += offset;
 			}
 			
@@ -73,7 +87,9 @@ static void offset_temporaries(lima_pp_lir_prog_t* prog)
 			{
 				if (is_scalar_temp_store(instr->temp_store_instr->op))
 					instr->temp_store_instr->load_store_index += offset * 4;
-				if (is_vector_temp_store(instr->temp_store_instr->op))
+				if (is_vec2_temp_store(instr->temp_store_instr->op))
+					instr->temp_store_instr->load_store_index += offset * 2;
+				if (is_vec4_temp_store(instr->temp_store_instr->op))
 					instr->temp_store_instr->load_store_index += offset;
 			}
 		}
@@ -375,12 +391,16 @@ static void emit_uniform_instr(lima_pp_lir_instr_t* instr,
 	{
 		case lima_pp_hir_op_loadu_one:
 		case lima_pp_hir_op_loadu_one_off:
+		case lima_pp_hir_op_loadu_two:
+		case lima_pp_hir_op_loadu_two_off:
 		case lima_pp_hir_op_loadu_four:
 		case lima_pp_hir_op_loadu_four_off:
 			field->source = lima_pp_uniform_src_uniform;
 			break;
 		case lima_pp_hir_op_loadt_one:
 		case lima_pp_hir_op_loadt_one_off:
+		case lima_pp_hir_op_loadt_two:
+		case lima_pp_hir_op_loadt_two_off:
 		case lima_pp_hir_op_loadt_four:
 		case lima_pp_hir_op_loadt_four_off:
 			field->source = lima_pp_uniform_src_temporary;
@@ -398,6 +418,12 @@ static void emit_uniform_instr(lima_pp_lir_instr_t* instr,
 		case lima_pp_hir_op_loadt_four_off:
 			field->alignment = 2;
 			break;
+		case lima_pp_hir_op_loadu_two:
+		case lima_pp_hir_op_loadu_two_off:
+		case lima_pp_hir_op_loadt_two:
+		case lima_pp_hir_op_loadt_two_off:
+			field->alignment = 1;
+			break;
 		case lima_pp_hir_op_loadu_one:
 		case lima_pp_hir_op_loadu_one_off:
 		case lima_pp_hir_op_loadt_one:
@@ -413,15 +439,19 @@ static void emit_uniform_instr(lima_pp_lir_instr_t* instr,
 	unsigned index, swizzle;
 	switch (instr->op) {
 		case lima_pp_hir_op_loadu_one:
+		case lima_pp_hir_op_loadu_two:
 		case lima_pp_hir_op_loadu_four:
 		case lima_pp_hir_op_loadt_one:
+		case lima_pp_hir_op_loadt_two:
 		case lima_pp_hir_op_loadt_four:
 			field->offset_en = false;
 			break;
 			
 		case lima_pp_hir_op_loadu_one_off:
+		case lima_pp_hir_op_loadu_two_off:
 		case lima_pp_hir_op_loadu_four_off:
 		case lima_pp_hir_op_loadt_one_off:
+		case lima_pp_hir_op_loadt_two_off:
 		case lima_pp_hir_op_loadt_four_off:
 			index = get_source(instr->sources[0]);
 			swizzle = instr->sources[0].swizzle[0];
@@ -875,6 +905,11 @@ static void emit_temp_write_instr(lima_pp_lir_instr_t* instr,
 			field->temp_write.alignment = 2;
 			field->temp_write.source = source * 4;
 			break;
+		case lima_pp_hir_op_storet_two:
+		case lima_pp_hir_op_storet_two_off:
+			field->temp_write.alignment = 1;
+			field->temp_write.source = source * 4;
+			break;
 		case lima_pp_hir_op_storet_one:
 		case lima_pp_hir_op_storet_one_off:
 			field->temp_write.alignment = 0;
@@ -889,11 +924,13 @@ static void emit_temp_write_instr(lima_pp_lir_instr_t* instr,
 	switch (instr->op)
 	{
 		case lima_pp_hir_op_storet_one:
+		case lima_pp_hir_op_storet_two:
 		case lima_pp_hir_op_storet_four:
 			field->temp_write.offset_en = false;
 			break;
 			
 		case lima_pp_hir_op_storet_one_off:
+		case lima_pp_hir_op_storet_two_off:
 		case lima_pp_hir_op_storet_four_off:
 			index = get_source(instr->sources[1]);
 			swizzle = instr->sources[1].swizzle[0];

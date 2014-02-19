@@ -1377,6 +1377,8 @@ bool lima_pp_hir_op_is_load(lima_pp_hir_op_e op)
 {
 	return op == lima_pp_hir_op_loadu_one
 	|| op == lima_pp_hir_op_loadu_one_off
+	|| op == lima_pp_hir_op_loadu_two
+	|| op == lima_pp_hir_op_loadu_two_off
 	|| op == lima_pp_hir_op_loadu_four
 	|| op == lima_pp_hir_op_loadu_four_off
 	|| op == lima_pp_hir_op_loadv_one
@@ -1389,6 +1391,8 @@ bool lima_pp_hir_op_is_load(lima_pp_hir_op_e op)
 	|| op == lima_pp_hir_op_loadv_four_off
 	|| op == lima_pp_hir_op_loadt_one
 	|| op == lima_pp_hir_op_loadt_one_off
+	|| op == lima_pp_hir_op_loadt_two
+	|| op == lima_pp_hir_op_loadt_two_off
 	|| op == lima_pp_hir_op_loadt_four
 	|| op == lima_pp_hir_op_loadt_four_off
 	|| lima_pp_hir_op_is_texld(op);
@@ -1398,6 +1402,8 @@ bool lima_pp_hir_op_is_store(lima_pp_hir_op_e op)
 {
 	return op == lima_pp_hir_op_storet_one
 	|| op == lima_pp_hir_op_storet_one_off
+	|| op == lima_pp_hir_op_storet_two
+	|| op == lima_pp_hir_op_storet_two_off
 	|| op == lima_pp_hir_op_storet_four
 	|| op == lima_pp_hir_op_storet_four_off;
 }

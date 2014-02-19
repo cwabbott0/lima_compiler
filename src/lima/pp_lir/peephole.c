@@ -32,6 +32,9 @@ static unsigned uniform_load_width(lima_pp_hir_op_e op)
 		case lima_pp_hir_op_loadu_one:
 		case lima_pp_hir_op_loadu_one_off:
 			return 1;
+		case lima_pp_hir_op_loadu_two:
+		case lima_pp_hir_op_loadu_two_off:
+			return 2;
 		case lima_pp_hir_op_loadu_four:
 		case lima_pp_hir_op_loadu_four_off:
 			return 4;
@@ -212,6 +215,8 @@ static bool peephole_uniform(lima_pp_lir_scheduled_instr_t* instr)
 	
 	if (instr->uniform_instr->op != lima_pp_hir_op_loadu_one &&
 		instr->uniform_instr->op != lima_pp_hir_op_loadu_one_off &&
+		instr->uniform_instr->op != lima_pp_hir_op_loadu_two &&
+		instr->uniform_instr->op != lima_pp_hir_op_loadu_two_off &&
 		instr->uniform_instr->op != lima_pp_hir_op_loadu_four &&
 		instr->uniform_instr->op != lima_pp_hir_op_loadu_four_off)
 		return true;

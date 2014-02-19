@@ -29,6 +29,8 @@ static bool is_temp_load(lima_pp_hir_op_e op)
 {
 	return op == lima_pp_hir_op_loadt_one ||
 	op == lima_pp_hir_op_loadt_one_off ||
+	op == lima_pp_hir_op_loadt_two ||
+	op == lima_pp_hir_op_loadt_two_off ||
 	op == lima_pp_hir_op_loadt_four ||
 	op == lima_pp_hir_op_loadt_four_off;
 }
@@ -37,6 +39,8 @@ static bool is_temp_store(lima_pp_hir_op_e op)
 {
 	return op == lima_pp_hir_op_storet_one ||
 	op == lima_pp_hir_op_storet_one_off ||
+	op == lima_pp_hir_op_storet_two ||
+	op == lima_pp_hir_op_storet_two_off ||
 	op == lima_pp_hir_op_storet_four ||
 	op == lima_pp_hir_op_storet_four_off;
 }
