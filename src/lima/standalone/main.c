@@ -172,7 +172,7 @@ int main(int argc, char** argv)
 			case 'o':
 				if (outfile)
 				{
-					fprintf(stderr, "Error: output file specified more than once");
+					fprintf(stderr, "Error: output file specified more than once\n");
 					usage();
 					exit(1);
 				}
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
 	const char* source = read_file(infile);
 	if (!source)
 	{
-		fprintf(stderr, "Error: could not read input file %s", infile);
+		fprintf(stderr, "Error: could not read input file %s\n", infile);
 		usage();
 		exit(1);
 	}
