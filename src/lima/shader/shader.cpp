@@ -52,6 +52,7 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
 	
 	shader->stage = stage;
 	shader->parsed = false;
+	shader->compiled = false;
 	shader->info_log = NULL;
 	
 	initialize_context_to_defaults(&shader->mesa_ctx, API_OPENGLES2);
@@ -214,7 +215,9 @@ bool lima_shader_parse(lima_shader_t* shader, const char* source)
 
 void lima_shader_optimize(lima_shader_t* shader)
 {
-	assert(shader->parsed);
+	if (!shader->parsed)
+		return;
+	
 	gl_shader_stage stage = shader->linked_shader->Stage;
 	exec_list* ir = shader->linked_shader->ir;
 	bool progress = true;
@@ -229,12 +232,24 @@ void lima_shader_optimize(lima_shader_t* shader)
 	validate_ir_tree(shader->linked_shader->ir);
 }
 
-void lima_shader_compile(lima_shader_t* shader)
+bool lima_shader_compile(lima_shader_t* shader)
 {
+	if (!shader->parsed)
+		return true;
+	
 	lima_convert_symbols(shader);
+	if (!lima_shader_symbols_pack(&shader->symbols, shader->stage))
+	{
+		ralloc_asprintf_append(&shader->info_log,
+							   "Error: could not allocate enough space for variables.\n");
+		shader->errors = true;
+		return true;
+	}
 	lima_shader_symbols_print(&shader->symbols);
 	
 	//TODO
+	shader->compiled = true;
+	return true;
 }
 
 void lima_shader_print_glsl(lima_shader_t* shader)

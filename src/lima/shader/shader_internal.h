@@ -36,9 +36,10 @@ struct lima_shader_s
 	struct gl_shader* shader, *linked_shader;
 	struct gl_shader_program* whole_program;
 	lima_shader_symbols_t symbols;
-	const char* info_log;
+	char* info_log;
 	void* mem_ctx;
-	bool parsed; /* whether the shader was parsed/compiled without any errors */
+	bool parsed; /* whether the shader was parsed without any errors */
+	bool compiled; /* whether the shader was lowered to assembly without any errors */
 	bool errors;
 };
 

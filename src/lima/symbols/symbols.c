@@ -342,8 +342,10 @@ static void print_symbol(lima_symbol_t* symbol, unsigned tabs)
 		printf("} ");
 	}
 	
-	printf("%s; //offset = %u, stride = %u", symbol->name, symbol->offset,
-		   symbol->stride);
+	printf("%s", symbol->name);
+	if (symbol->array_elems)
+		printf("[%u]", symbol->array_elems);
+	printf("; //offset = %u, stride = %u", symbol->offset, symbol->stride);
 	if (!symbol->used)
 		printf(", unused");
 	printf("\n");

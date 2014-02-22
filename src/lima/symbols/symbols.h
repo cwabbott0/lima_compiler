@@ -30,6 +30,7 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include "shader.h"
 
 /* symbol types */
 
@@ -141,6 +142,9 @@ unsigned lima_shader_symbols_add_const(lima_shader_symbols_t* symbols,
 									   lima_symbol_t* symbol);
 
 void lima_shader_symbols_print(lima_shader_symbols_t* symbols);
+
+bool lima_shader_symbols_pack(lima_shader_symbols_t* symbols,
+							  lima_shader_stage_e stage);
 
 #ifdef __cplusplus
 }

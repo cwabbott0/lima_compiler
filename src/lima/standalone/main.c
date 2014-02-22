@@ -98,6 +98,13 @@ static const char* read_file(const char* path)
 	return data;
 }
 
+static void shader_errors(lima_shader_t* shader)
+{
+	fprintf(stderr, "There were error(s) during compilation.\n");
+	fprintf(stderr, "Info log:\n%s", lima_shader_info_log(shader));
+	exit(1);
+}
+
 int main(int argc, char** argv)
 {
 	bool dump_asm = false, dump_hir = false, dump_lir = false;
@@ -246,11 +253,7 @@ int main(int argc, char** argv)
 	lima_shader_t* shader = lima_shader_create(stage);
 	lima_shader_parse(shader, source);
 	if (lima_shader_error(shader))
-	{
-		fprintf(stderr, "There were error(s) during compilation.\n");
-		fprintf(stderr, "Info log:\n%s", lima_shader_info_log(shader));
-		exit(1);
-	}
+		shader_errors(shader);
 	
 	if (dump_hir)
 	{
@@ -269,6 +272,9 @@ int main(int argc, char** argv)
 	}
 	
 	lima_shader_compile(shader);
+	
+	if (lima_shader_error(shader))
+		shader_errors(shader);
 	
 	return 0;
 }
