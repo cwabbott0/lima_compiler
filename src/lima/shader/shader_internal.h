@@ -35,6 +35,7 @@ struct lima_shader_s
 	lima_core_e core;
 	struct gl_context mesa_ctx;
 	_mesa_glsl_parse_state* state;
+	struct hash_table* glsl_symbols;
 	struct gl_shader* shader, *linked_shader;
 	struct gl_shader_program* whole_program;
 	lima_shader_symbols_t symbols;

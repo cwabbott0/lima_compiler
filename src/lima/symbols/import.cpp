@@ -41,8 +41,10 @@ class symbol_convert_visitor : public ir_hierarchical_visitor
 {
 public:
 	symbol_convert_visitor(lima_shader_symbols_t* symbols,
-						   lima_shader_stage_e stage)
-		: symbols(symbols), stage(stage), unused(false)
+						   lima_shader_stage_e stage,
+						   struct hash_table* glsl_symbols)
+		: symbols(symbols), stage(stage), glsl_symbols(glsl_symbols),
+		  unused(false)
 	{
 	}
 	
@@ -50,6 +52,7 @@ public:
 	
 	lima_shader_symbols_t* symbols;
 	lima_shader_stage_e stage;
+	struct hash_table* glsl_symbols;
 	bool unused;
 };
 
@@ -222,13 +225,17 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 			assert(0);
 	}
 	
+	_mesa_hash_table_insert(this->glsl_symbols, _mesa_hash_pointer(ir), ir,
+							symbol);
+	
 	return visit_continue;
 }
 
 
 void lima_convert_symbols(lima_shader_t* shader)
 {
-	symbol_convert_visitor v(&shader->symbols, shader->stage);
+	symbol_convert_visitor v(&shader->symbols, shader->stage,
+							 shader->glsl_symbols);
 	v.run(shader->linked_shader->ir);
 	if (shader->stage == lima_shader_stage_vertex)
 	{

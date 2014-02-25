@@ -69,6 +69,11 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage, lima_core_e core)
 	if (!shader->mem_ctx)
 		goto err_mem2;
 	
+	shader->glsl_symbols = _mesa_hash_table_create(shader->mem_ctx,
+												   _mesa_key_pointer_equal);
+	if (!shader->glsl_symbols)
+		goto err_mem2;
+	
 	shader->whole_program = rzalloc(shader->mem_ctx, struct gl_shader_program);
 	if (!shader->whole_program)
 		goto err_mem2;
