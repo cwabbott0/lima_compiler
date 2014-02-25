@@ -323,7 +323,26 @@ static bool pack_table_std(lima_symbol_table_t* table, unsigned num_vec4s)
 	state.free_high[0] = state.free_high[1] = state.free_high[2]
 		= state.free_high[3] = num_vec4s;
 	
-	return pack_table(table, pack_std, &state);
+	if (pack_table(table, pack_std, &state))
+	{
+		//determine total size
+		
+		for (unsigned i = 0; i < 4; i++)
+			if (state.free_high[i] != num_vec4s)
+			{
+				table->total_size = num_vec4s;
+				return true;
+			}
+		
+		table->total_size = 0;
+		for (unsigned i = 0; i < 4; i++)
+			if (state.free_low[i] > table->total_size)
+				table->total_size = state.free_low[i];
+		
+		return true;
+	}
+	
+	return false;
 }
 
 /*
@@ -400,7 +419,6 @@ static unsigned get_alignment(lima_symbol_t* symbol)
 
 typedef struct {
 	unsigned pos;
-	unsigned size;
 } align_pack_state_t;
 
 #define ALIGN(n, align) (((n) + (align) - 1) - ((n) + (align) - 1) % (align))
@@ -435,15 +453,16 @@ static bool pack_align(lima_symbol_t* symbol, void* data)
 	unsigned array_elems = symbol->array_elems ? symbol->array_elems : 1;
 	state->pos += symbol->stride * array_elems;
 	
-	return state->pos <= state->size;
+	return true;
 }
 
 static bool pack_table_align(lima_symbol_table_t* table, unsigned size)
 {
 	align_pack_state_t state;
 	state.pos = 0;
-	state.size = size;
-	return pack_table(table, pack_align, &state);
+	pack_table(table, pack_align, &state);
+	table->total_size = state.pos;
+	return table->total_size <= size;
 }
 
 /* 
@@ -456,7 +475,6 @@ static bool pack_table_align(lima_symbol_table_t* table, unsigned size)
 
 typedef struct {
 	unsigned pos;
-	unsigned size;
 } attr_pack_state_t;
 
 static bool pack_attr(lima_symbol_t* symbol, void* data)
@@ -470,15 +488,16 @@ static bool pack_attr(lima_symbol_t* symbol, void* data)
 	symbol->offset = 4 * state->pos;
 	symbol->stride = 4 * my_num_rows;
 	state->pos += my_num_rows;
-	return state->pos <= state->size;
+	return true;
 }
 
 static bool pack_table_attr(lima_symbol_table_t* table, unsigned num_vec4s)
 {
 	attr_pack_state_t state;
 	state.pos = 0;
-	state.size = num_vec4s;
-	return pack_table(table, pack_attr, &state);
+	pack_table(table, pack_attr, &state);
+	table->total_size = 4 * state.pos;
+	return state.pos <= num_vec4s;
 }
 
 bool lima_shader_symbols_pack(lima_shader_symbols_t* symbols,

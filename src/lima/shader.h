@@ -29,6 +29,10 @@
 extern "C" {
 #endif
 
+struct lima_shader_symbols_s;
+
+#include "mbs/mbs.h"
+
 typedef enum {
 	lima_shader_stage_vertex,
 	lima_shader_stage_fragment,
@@ -36,16 +40,39 @@ typedef enum {
 } lima_shader_stage_e;
 
 typedef enum {
+	lima_core_mali_200,
+	lima_core_mali_400,
+} lima_core_e;
+
+typedef enum {
 	lima_asm_syntax_explicit,
 	lima_asm_syntax_verbose,
 	lima_asm_syntax_decompile,
 	lima_asm_syntax_unknown
 } lima_asm_syntax_e;
+	
+#include "symbols/symbols.h"
+
+//extra information exported by binary online & offline compilers
+typedef union {
+	struct {
+		unsigned num_instructions, attrib_prefetch;
+	} vs;
+	
+	struct {
+		unsigned stack_size, stack_offset;
+		bool has_discard;
+		bool reads_color, writes_color;
+		bool reads_depth, writes_depth;
+		bool reads_stencil, writes_stencil;
+		unsigned first_instr_length; //online compiler only
+	} fs;
+} lima_shader_info_t;
 
 struct lima_shader_s;
 typedef struct lima_shader_s lima_shader_t;
 
-lima_shader_t* lima_shader_create(lima_shader_stage_e stage);
+lima_shader_t* lima_shader_create(lima_shader_stage_e stage, lima_core_e core);
 void lima_shader_delete(lima_shader_t* shader);
 
 /*
@@ -78,6 +105,22 @@ bool lima_shader_error(lima_shader_t* shader);
  */
 
 const char* lima_shader_info_log(lima_shader_t* shader);
+
+/* get the shader info structure after compiling, needed by the online compiler
+ * interface 
+ */
+
+lima_shader_info_t lima_shader_get_info(lima_shader_t* shader);
+
+lima_core_e lima_shader_get_core(lima_shader_t* shader);
+
+lima_shader_stage_e lima_shader_get_stage(lima_shader_t* shader);
+
+struct lima_shader_symbols_s* lima_shader_get_symbols(lima_shader_t* shader);
+
+/* export to the MBS format used by the binary offline compiler */
+
+mbs_chunk_t* lima_shader_export_offline(lima_shader_t* shader);
 
 #ifdef __cplusplus
 }

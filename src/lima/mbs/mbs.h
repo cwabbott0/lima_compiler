@@ -22,27 +22,33 @@
  * THE SOFTWARE.
  */
 
-#include "shader.h"
-#include "program.h"
-#include "symbols/symbols.h"
-#include "glsl_parser_extras.h"
-#include "ralloc.h"
+#ifndef __MBS_H__
+#define __MBS_H__
 
-struct lima_shader_s
-{
-	lima_shader_stage_e stage;
-	lima_core_e core;
-	struct gl_context mesa_ctx;
-	_mesa_glsl_parse_state* state;
-	struct gl_shader* shader, *linked_shader;
-	struct gl_shader_program* whole_program;
-	lima_shader_symbols_t symbols;
-	lima_shader_info_t info;
-	char* info_log;
-	void* mem_ctx;
-	bool parsed; /* whether the shader was parsed without any errors */
-	bool compiled; /* whether the shader was lowered to assembly without any errors */
-	bool errors;
-};
+#include <stdbool.h>
 
-void lima_convert_symbols(lima_shader_t* shader);
+typedef struct {
+	char ident[4];
+	unsigned size;
+	char* data;
+} mbs_chunk_t;
+
+mbs_chunk_t* mbs_chunk_create(char* ident);
+void mbs_chunk_delete(mbs_chunk_t* chunk);
+
+//creates a chunk of type STRI
+mbs_chunk_t* mbs_chunk_string(const char* string);
+
+//insert one chunk inside another - deletes the chunk being inserted
+bool mbs_chunk_append(mbs_chunk_t* chunk, mbs_chunk_t* append);
+
+//insert binary data inside a chunk
+bool mbs_chunk_append_data(mbs_chunk_t* chunk, void* data, unsigned size);
+
+//returns the total amount of bytes needed to hold the exported chunk
+unsigned mbs_chunk_size(mbs_chunk_t* chunk);
+
+//exports a chunk to an allocated piece of memory
+void mbs_chunk_export(mbs_chunk_t* chunk, void* data);
+
+#endif

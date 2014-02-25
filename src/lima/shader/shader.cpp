@@ -41,7 +41,7 @@ static void DeleteShader(struct gl_context *ctx, struct gl_shader *shader)
 	ralloc_free(shader);
 }
 
-lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
+lima_shader_t* lima_shader_create(lima_shader_stage_e stage, lima_core_e core)
 {
 	lima_shader_t* shader = (lima_shader_t*) calloc(1, sizeof(lima_shader_t));
 	if (!shader)
@@ -51,6 +51,7 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage)
 		goto err_mem;
 	
 	shader->stage = stage;
+	shader->core = core;
 	shader->parsed = false;
 	shader->compiled = false;
 	shader->info_log = NULL;
@@ -247,6 +248,20 @@ bool lima_shader_compile(lima_shader_t* shader)
 	}
 	lima_shader_symbols_print(&shader->symbols);
 	
+	//XXX fill me in
+	shader->info.vs.num_instructions = 0;
+	shader->info.vs.attrib_prefetch = 0;
+	shader->info.fs.stack_size = 1;
+	shader->info.fs.stack_offset = 1;
+	shader->info.fs.has_discard = false;
+	shader->info.fs.reads_color = false;
+	shader->info.fs.writes_color = true;
+	shader->info.fs.reads_depth = false;
+	shader->info.fs.writes_depth = false;
+	shader->info.fs.reads_stencil = false;
+	shader->info.fs.writes_stencil = false;
+	shader->info.fs.first_instr_length = 0;
+	
 	//TODO
 	shader->compiled = true;
 	return true;
@@ -266,4 +281,24 @@ bool lima_shader_error(lima_shader_t* shader)
 const char* lima_shader_info_log(lima_shader_t* shader)
 {
 	return shader->info_log;
+}
+
+lima_shader_info_t lima_shader_get_info(lima_shader_t* shader)
+{
+	return shader->info;
+}
+
+lima_core_e lima_shader_get_core(lima_shader_t* shader)
+{
+	return shader->core;
+}
+
+lima_shader_stage_e lima_shader_get_stage(lima_shader_t* shader)
+{
+	return shader->stage;
+}
+
+lima_shader_symbols_t* lima_shader_get_symbols(lima_shader_t* shader)
+{
+	return &shader->symbols;
 }

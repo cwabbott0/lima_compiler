@@ -31,6 +31,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include "shader.h"
+#include "mbs/mbs.h"
 
 /* symbol types */
 
@@ -65,7 +66,8 @@ typedef enum {
 typedef enum {
 	lima_precision_low,
 	lima_precision_medium,
-	lima_precision_high
+	lima_precision_high,
+	lima_num_precisions
 } lima_symbol_precision_e;
 
 typedef struct lima_symbol_s {
@@ -105,6 +107,8 @@ void lima_symbol_delete(lima_symbol_t* symbol);
 typedef struct {
 	unsigned num_symbols, symbol_capacity;
 	lima_symbol_t** symbols;
+	
+	unsigned total_size;
 } lima_symbol_table_t;
 
 bool lima_symbol_table_init(lima_symbol_table_t* table);
@@ -116,7 +120,7 @@ bool lima_symbol_table_add(lima_symbol_table_t* table, lima_symbol_t* symbol);
 lima_symbol_t* lima_symbol_table_find(lima_symbol_table_t* table,
 									  const char* name);
 
-typedef struct {
+typedef struct lima_shader_symbols_s {
 	lima_symbol_table_t attribute_table, varying_table, uniform_table;
 	unsigned cur_uniform_index, cur_const_index; /* for inserting constants */
 } lima_shader_symbols_t;
@@ -145,6 +149,10 @@ void lima_shader_symbols_print(lima_shader_symbols_t* symbols);
 
 bool lima_shader_symbols_pack(lima_shader_symbols_t* symbols,
 							  lima_shader_stage_e stage);
+
+mbs_chunk_t* lima_export_varying_table(lima_shader_symbols_t* symbols);
+mbs_chunk_t* lima_export_attribute_table(lima_shader_symbols_t* symbols);
+mbs_chunk_t* lima_export_uniform_table(lima_shader_symbols_t* symbols);
 
 #ifdef __cplusplus
 }

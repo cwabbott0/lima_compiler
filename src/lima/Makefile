@@ -12,7 +12,7 @@ LIB_NAME = lib$(NAME).so
 STANDALONE_NAME = $(NAME)
 
 SOURCE  = . \
-	gp_ir pp_hir pp_lir gp pp shader symbols
+	gp_ir pp_hir pp_lir gp pp shader symbols mbs
 
 STANDALONE_SOURCE = standalone
 

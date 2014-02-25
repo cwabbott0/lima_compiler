@@ -34,6 +34,10 @@
 "\n" \
 "options:\n" \
 "\t--type (-t) [vert|frag] -- choose which kind of shader\n" \
+"\t--core (-c) -- choose which processor to compile for.\n" \
+"\t\tMali-200\n" \
+"\t\tMali-400\n" \
+"\t\tDefault: Mali-400\n" \
 "\t--dump-hir -- print the GLSL IR before optimization\n" \
 "\t--dump-lir -- print the GLSL IR after optimization\n" \
 "\t--dump-asm (-d) -- print out the resulting assembly\n" \
@@ -109,12 +113,14 @@ int main(int argc, char** argv)
 {
 	bool dump_asm = false, dump_hir = false, dump_lir = false;
 	lima_shader_stage_e stage = lima_shader_stage_unknown;
+	lima_core_e core = lima_core_mali_400;
 	lima_asm_syntax_e syntax = lima_asm_syntax_unknown;
 	char* outfile = NULL;
 	char* infile = NULL;
 	
 	static struct option long_options[] = {
 		{"type",     required_argument, NULL, 't'},
+		{"core",     required_argument, NULL, 'c'},
 		{"dump-hir", no_argument,       NULL, 'i'},
 		{"dump-lir", no_argument,       NULL, 'l'},
 		{"dump-asm", no_argument,       NULL, 'd'},
@@ -128,7 +134,7 @@ int main(int argc, char** argv)
 	{
 		int option_index = 0;
 		
-		int c = getopt_long(argc, argv, "t:ds:o:h", long_options, &option_index);
+		int c = getopt_long(argc, argv, "t:c:ds:o:h", long_options, &option_index);
 		
 		if (c == -1)
 			break;
@@ -147,6 +153,18 @@ int main(int argc, char** argv)
 					exit(1);
 				}
 				break;
+				
+			case 'c':
+				if (strcmp(optarg, "Mali-200") == 0)
+					core = lima_core_mali_200;
+				else if (strcmp(optarg, "Mali-400") == 0)
+					core = lima_core_mali_400;
+				else
+				{
+					fprintf(stderr, "Error: unknown core type %s\n", optarg);
+					usage();
+					exit(1);
+				}
 			
 			case 'd':
 				dump_asm = true;
@@ -250,7 +268,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 	
-	lima_shader_t* shader = lima_shader_create(stage);
+	lima_shader_t* shader = lima_shader_create(stage, core);
 	lima_shader_parse(shader, source);
 	if (lima_shader_error(shader))
 		shader_errors(shader);
@@ -275,6 +293,30 @@ int main(int argc, char** argv)
 	
 	if (lima_shader_error(shader))
 		shader_errors(shader);
+	
+	mbs_chunk_t* chunk = lima_shader_export_offline(shader);
+	if (!chunk)
+		return 1;
+	
+	unsigned size = mbs_chunk_size(chunk);
+	void* data = malloc(size);
+	if (!data)
+		return 1;
+	
+	mbs_chunk_export(chunk, data);
+	
+	FILE* fp = fopen(outfile, "wb");
+	if (!fp)
+	{
+		fprintf(stderr, "Failed to open output file\n");
+		return 1;
+	}
+	
+	fwrite(data, 1, size, fp);
+	
+	fclose(fp);
+	free(data);
+	lima_shader_delete(shader);
 	
 	return 0;
 }

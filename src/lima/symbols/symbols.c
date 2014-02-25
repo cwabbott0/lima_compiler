@@ -182,6 +182,7 @@ void lima_symbol_delete(lima_symbol_t* symbol)
 bool lima_symbol_table_init(lima_symbol_table_t* table)
 {
 	table->num_symbols = 0;
+	table->total_size = 0;
 	table->symbol_capacity = INITIAL_CAPACITY;
 	table->symbols = malloc(INITIAL_CAPACITY * sizeof(lima_symbol_t*));
 	
