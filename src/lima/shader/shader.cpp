@@ -238,6 +238,8 @@ bool lima_shader_compile(lima_shader_t* shader)
 	if (!shader->parsed)
 		return true;
 	
+	convert_to_ssa(shader->linked_shader->ir);
+	
 	lima_convert_symbols(shader);
 	if (!lima_shader_symbols_pack(&shader->symbols, shader->stage))
 	{

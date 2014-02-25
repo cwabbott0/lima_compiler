@@ -121,7 +121,7 @@ lima_symbol_t* lima_symbol_table_find(lima_symbol_table_t* table,
 									  const char* name);
 
 typedef struct lima_shader_symbols_s {
-	lima_symbol_table_t attribute_table, varying_table, uniform_table;
+	lima_symbol_table_t attribute_table, varying_table, uniform_table, temporary_table;
 	unsigned cur_uniform_index, cur_const_index; /* for inserting constants */
 } lima_shader_symbols_t;
 
@@ -137,6 +137,9 @@ bool lima_shader_symbols_add_attribute(lima_shader_symbols_t* symbols,
 
 bool lima_shader_symbols_add_uniform(lima_shader_symbols_t* symbols,
 									 lima_symbol_t* symbol);
+
+bool lima_shader_symbols_add_temporary(lima_shader_symbols_t* symbols,
+									   lima_symbol_t* symbol);
 
 /* convenience method for inserting constants in the GP backend - returns the
  * index of the created constant

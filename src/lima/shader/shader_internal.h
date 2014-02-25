@@ -26,6 +26,7 @@
 #include "program.h"
 #include "symbols/symbols.h"
 #include "glsl_parser_extras.h"
+#include "main/hash_table.h"
 #include "ralloc.h"
 
 struct lima_shader_s

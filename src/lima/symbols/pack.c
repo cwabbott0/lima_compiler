@@ -513,10 +513,20 @@ bool lima_shader_symbols_pack(lima_shader_symbols_t* symbols,
 	{
 		if (!pack_table_std(&symbols->uniform_table, 304))
 			return false;
+		
+		if (!pack_table_std(&symbols->temporary_table, 304))
+			return false;
+		
+		if (symbols->uniform_table.total_size
+			+ symbols->temporary_table.total_size > 304)
+			return false;
 	}
 	else
 	{
-		if (!pack_table_align(&symbols->uniform_table, 65536))
+		if (!pack_table_align(&symbols->uniform_table, 16384))
+			return false;
+		
+		if (!pack_table_align(&symbols->temporary_table, 16384))
 			return false;
 	}
 	

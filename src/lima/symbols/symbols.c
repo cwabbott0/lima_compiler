@@ -235,9 +235,15 @@ bool lima_shader_symbols_init(lima_shader_symbols_t* symbols)
 	if (!lima_symbol_table_init(&symbols->uniform_table))
 		goto err_mem2;
 	
+	if (!lima_symbol_table_init(&symbols->temporary_table))
+		goto err_mem3;
+	
 	symbols->cur_uniform_index = 0;
 	symbols->cur_const_index = 0;
 	return true;
+	
+	err_mem3:
+	lima_symbol_table_delete(&symbols->uniform_table);
 	
 	err_mem2:
 	lima_symbol_table_delete(&symbols->varying_table);
@@ -252,6 +258,7 @@ void lima_shader_symbols_delete(lima_shader_symbols_t* symbols)
 	lima_symbol_table_delete(&symbols->varying_table);
 	lima_symbol_table_delete(&symbols->attribute_table);
 	lima_symbol_table_delete(&symbols->uniform_table);
+	lima_symbol_table_delete(&symbols->temporary_table);
 }
 
 bool lima_shader_symbols_add_varying(lima_shader_symbols_t* symbols,
@@ -295,6 +302,12 @@ bool lima_shader_symbols_add_uniform(lima_shader_symbols_t* symbols,
 	 */
 	
 	return lima_symbol_table_add(&symbols->uniform_table, symbol);
+}
+
+bool lima_shader_symbols_add_temporary(lima_shader_symbols_t* symbols,
+									   lima_symbol_t* symbol)
+{
+	return lima_symbol_table_add(&symbols->temporary_table, symbol);
 }
 
 static void print_tabs(unsigned tabs)
@@ -366,4 +379,5 @@ void lima_shader_symbols_print(lima_shader_symbols_t* symbols)
 	print_table(&symbols->attribute_table, "attribute");
 	print_table(&symbols->varying_table, "varying");
 	print_table(&symbols->uniform_table, "uniform");
+	print_table(&symbols->temporary_table, "");
 }

@@ -180,7 +180,9 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 {
 	if (ir->data.mode != ir_var_shader_in &&
 		ir->data.mode != ir_var_shader_out &&
-		ir->data.mode != ir_var_uniform)
+		ir->data.mode != ir_var_uniform &&
+		ir->data.mode != ir_var_temporary &&
+		ir->data.mode != ir_var_auto)
 		return visit_continue;
 	
 	if (this->stage == lima_shader_stage_fragment &&
@@ -209,6 +211,11 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 			
 		case ir_var_uniform:
 			lima_shader_symbols_add_uniform(this->symbols, symbol);
+			break;
+			
+		case ir_var_temporary:
+		case ir_var_auto:
+			lima_shader_symbols_add_temporary(this->symbols, symbol);
 			break;
 			
 		default:
