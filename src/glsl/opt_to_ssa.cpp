@@ -412,6 +412,16 @@ ir_ssa_state_visitor::remove_variable(const ir_variable *var)
       _mesa_hash_table_search(this->ht, _mesa_hash_pointer(var), var);
 
    if (entry) {
+      ir_ssa_variable_state *isvs = (ir_ssa_variable_state *) entry->data;
+      
+      /*
+       * remove undefined_var (created in
+       * ir_ssa_state_visitor::visit(ir_variable *))
+       */
+      
+      ir_assignment *assign = isvs->undefined_var->ssa_owner->as_assignment();
+      assign->remove();
+      
       free_state(entry);
       _mesa_hash_table_remove(this->ht, entry);
    }
