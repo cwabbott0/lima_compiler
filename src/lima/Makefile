@@ -1,7 +1,7 @@
 CUR_DIR = $(shell pwd)
 TOP_SRC_DIR = $(CUR_DIR)/..
 TOP_DIR = $(TOP_SRC_DIR)/..
-CFLAGS += -Wall -Wextra --std=c99 -g -fPIC
+CFLAGS += -Wall -Wextra --std=gnu99 -g -fPIC
 CFLAGS += -I $(CUR_DIR)
 CFLAGS += -I $(TOP_SRC_DIR)/glsl
 CFLAGS += -I $(TOP_SRC_DIR)/mesa
