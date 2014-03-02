@@ -1,13 +1,13 @@
 CUR_DIR = $(shell pwd)
 TOP_SRC_DIR = $(CUR_DIR)/..
 TOP_DIR = $(TOP_SRC_DIR)/..
-CFLAGS += -Wall -Wextra --std=gnu99 -g -fPIC
+CFLAGS += -Wall -Wextra --std=c99 -g -fPIC
 CFLAGS += -I $(CUR_DIR)
 CFLAGS += -I $(TOP_SRC_DIR)/glsl
 CFLAGS += -I $(TOP_SRC_DIR)/mesa
 CFLAGS += -I $(TOP_DIR)/include
 
-CXXFLAGS += -Wall -Wextra --std=gnu++03 -g -fPIC
+CXXFLAGS += -Wall -Wextra --std=c++03 -g -fPIC
 CXXFLAGS += -I $(CUR_DIR)
 CXXFLAGS += -I $(TOP_SRC_DIR)/glsl
 CXXFLAGS += -I $(TOP_SRC_DIR)/mesa
