@@ -23,6 +23,9 @@
  */
 
 #include "shader_internal.h"
+#include "pp_hir/phi_elim.h"
+#include "pp_hir/xform.h"
+#include "pp_hir/cfold.h"
 #include "ir.h"
 #include "ast.h"
 #include "glsl_parser.h"
@@ -55,6 +58,8 @@ lima_shader_t* lima_shader_create(lima_shader_stage_e stage, lima_core_e core)
 	shader->parsed = false;
 	shader->compiled = false;
 	shader->info_log = NULL;
+	shader->code = NULL;
+	shader->code_size = 0;
 	
 	initialize_context_to_defaults(&shader->mesa_ctx, API_OPENGLES2);
 	shader->mesa_ctx.Const.GLSLVersion = 100;
@@ -174,6 +179,12 @@ bool lima_shader_parse(lima_shader_t* shader, const char* source)
 	shader->shader->ir = ir;
 	
 	_mesa_ast_to_hir(ir, shader->state);
+	if (shader->state->error)
+	{
+		shader->errors = true;
+		shader->info_log = shader->state->info_log;
+		return true;
+	}
 	
 	validate_ir_tree(ir);
 	
@@ -238,7 +249,80 @@ void lima_shader_optimize(lima_shader_t* shader)
 	validate_ir_tree(shader->linked_shader->ir);
 }
 
-bool lima_shader_compile(lima_shader_t* shader)
+/* driver for the PP backend */
+
+static void compile_pp_shader(lima_shader_t* shader, bool dump_ir)
+{
+	if (dump_ir)
+	{
+		printf("PP HIR (before optimization & lowering):\n\n");
+		lima_pp_hir_prog_print(shader->ir.pp.hir_prog);
+	}
+	
+	lima_pp_hir_dead_code_eliminate(shader->ir.pp.hir_prog);
+	
+	lima_pp_hir_prog_print(shader->ir.pp.hir_prog);
+	
+	lima_pp_hir_propagate_copies(shader->ir.pp.hir_prog);
+	
+	lima_pp_hir_prog_cfold(shader->ir.pp.hir_prog);
+	
+	unsigned c;
+	do
+	{
+		c = lima_pp_hir_prog_xform(shader->ir.pp.hir_prog);
+	} while (c != 0);
+	
+	lima_pp_hir_split_crit_edges(shader->ir.pp.hir_prog);
+	
+	lima_pp_hir_prog_reorder(shader->ir.pp.hir_prog);
+	
+	if (dump_ir)
+	{
+		printf("PP HIR (after optimization & lowering):\n\n");
+		lima_pp_hir_prog_print(shader->ir.pp.hir_prog);
+	}
+	
+	lima_pp_hir_convert_to_cssa(shader->ir.pp.hir_prog);
+	
+	shader->ir.pp.lir_prog = lima_pp_lir_convert(shader->ir.pp.hir_prog);
+	
+	if (dump_ir)
+	{
+		printf("PP LIR (before optimization, regalloc, and scheduling):\n\n");
+		lima_pp_lir_prog_print(shader->ir.pp.lir_prog, false);
+	}
+	
+	lima_pp_lir_calc_dep_info(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_peephole(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_reg_pressure_schedule_prog(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_delete_dep_info(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_regalloc(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_calc_dep_info(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_combine_schedule_prog(shader->ir.pp.lir_prog);
+	
+	lima_pp_lir_delete_dep_info(shader->ir.pp.lir_prog);
+	
+	if (dump_ir)
+	{
+		printf("PP LIR (after optimization, regalloc, and scheduling):\n\n");
+		lima_pp_lir_prog_print(shader->ir.pp.lir_prog, false);
+	}
+	
+	void* code = lima_pp_lir_codegen(shader->ir.pp.lir_prog, &shader->code_size);
+	
+	shader->code = ralloc_size(shader->mem_ctx, shader->code_size);
+	memcpy(shader->code, code, shader->code_size);
+	free(code);
+}
+
+bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 {
 	if (!shader->parsed)
 		return true;
@@ -269,6 +353,18 @@ bool lima_shader_compile(lima_shader_t* shader)
 	shader->info.fs.writes_stencil = false;
 	shader->info.fs.first_instr_length = 0;
 	
+	_mesa_print_ir(shader->linked_shader->ir, shader->state);
+	
+	if (shader->stage == lima_shader_stage_fragment)
+	{
+		lima_lower_to_pp_hir(shader);
+		compile_pp_shader(shader, dump_ir);
+	}
+	else
+	{
+		//TODO
+	}
+	
 	//TODO
 	shader->compiled = true;
 	return true;
@@ -283,6 +379,16 @@ void lima_shader_print_glsl(lima_shader_t* shader)
 bool lima_shader_error(lima_shader_t* shader)
 {
 	return shader->errors;
+}
+
+void* lima_shader_get_code(lima_shader_t* shader)
+{
+	return shader->code;
+}
+
+unsigned lima_shader_get_code_size(lima_shader_t* shader)
+{
+	return shader->code_size;
 }
 
 const char* lima_shader_info_log(lima_shader_t* shader)

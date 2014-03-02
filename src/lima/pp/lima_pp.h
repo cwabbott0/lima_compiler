@@ -178,7 +178,7 @@ __attribute__((__packed__))
 {
 	lima_pp_uniform_src_e source     :  2;
 	unsigned              unknown_0  :  8; /* = 00 0000 00 */
-	bool                  alignment  :  2; /* 0: float, 1: vec2, 2: vec4 */
+	unsigned              alignment  :  2; /* 0: float, 1: vec2, 2: vec4 */
 	unsigned              unknown_1  :  6; /* = 00 0000 */
 	unsigned              offset_reg :  6;
 	bool                  offset_en  :  1;
@@ -337,7 +337,7 @@ __attribute__((__packed__))
 		unsigned dest       :  2; /* = 11 */
 		unsigned unknown_0  :  2; /* = 00 */
 		unsigned source     :  6;
-		bool     alignment  :  2; /* 0: float, 1: vec2, 2: vec4 */
+		unsigned alignment  :  2; /* 0: float, 1: vec2, 2: vec4 */
 		unsigned unknown_2  :  6; /* = 00 0000 */
 		unsigned offset_reg :  6;
 		bool     offset_en  :  1;

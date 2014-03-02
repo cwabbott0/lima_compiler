@@ -29,8 +29,16 @@
 
 #include "pp_hir.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern lima_pp_hir_vec4_t (*lima_pp_hir_cfold[])(lima_pp_hir_vec4_t* args);
 
 extern unsigned lima_pp_hir_prog_cfold(lima_pp_hir_prog_t* prog);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -28,6 +28,10 @@
 #ifndef __lima_pp_hir_h__
 #define __lima_pp_hir_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -93,7 +97,7 @@ static const lima_pp_hir_dest_t
 	lima_pp_hir_dest_default =
 {
 	.reg      = { .mask = 0xC0000000 },
-	.modifier = 0,
+	.modifier = lima_pp_outmod_none,
 };
 
 typedef enum
@@ -420,10 +424,10 @@ static inline unsigned lima_pp_hir_arg_size(lima_pp_hir_cmd_t* cmd, unsigned arg
 		{
 			if (cmd->src[i].constant)
 				continue;
-			lima_pp_hir_cmd_t* dep = cmd->src[i].depend;
+			lima_pp_hir_cmd_t* dep = (lima_pp_hir_cmd_t*) cmd->src[i].depend;
 			size += dep->dst.reg.size + 1;
 		}
-		lima_pp_hir_cmd_t* dep = cmd->src[arg].depend;
+		lima_pp_hir_cmd_t* dep = (lima_pp_hir_cmd_t*) cmd->src[arg].depend;
 		unsigned arg_size = dep->dst.reg.size + 1;
 		if (size + arg_size > cmd->dst.reg.size)
 			return cmd->dst.reg.size + 1 - size;
@@ -584,5 +588,9 @@ bool lima_pp_hir_cfg_traverse(
 
 
 //extern uint32_t* lima_pp_hir_gen_frag(lima_pp_hir_prog_t* prog, unsigned* size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

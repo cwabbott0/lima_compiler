@@ -219,13 +219,16 @@ static bool convert_combine(lima_pp_lir_block_t* block,
 			instr->dest.mask[j] = true;
 		for (; j < 4; j++)
 			instr->dest.mask[j] = false;
+		ptrset_add(&dest_reg->defs, instr);
 
-		instr->sources[0].reg = get_reg(block->prog, dep->dst.reg.index);
+		lima_pp_lir_reg_t* src_reg = get_reg(block->prog, dep->dst.reg.index);
+		instr->sources[0].reg = src_reg;
 		if (!instr->sources[0].reg)
 		{
 			lima_pp_lir_instr_delete(instr);
 			return false;
 		}
+		ptrset_add(&src_reg->uses, instr);
 		instr->sources[0].absolute = cmd->src[i].absolute;
 		instr->sources[0].negate = cmd->src[i].negate;
 		for (j = 0; j < pos; j++)
@@ -359,8 +362,10 @@ static bool convert_branch(lima_pp_lir_prog_t* frag_prog,
 	else
 	{
 		branch_instr->sources[0].constant = false;
-		branch_instr->sources[0].reg = get_reg(frag_prog,
-											   block->reg_cond_a.reg->dst.reg.index);
+		lima_pp_lir_reg_t* reg = get_reg(frag_prog,
+										 block->reg_cond_a.reg->dst.reg.index);
+		branch_instr->sources[0].reg = reg;
+		ptrset_add(&reg->uses, branch_instr);
 		if (!branch_instr->sources[0].reg)
 		{
 			lima_pp_lir_instr_delete(branch_instr);
@@ -384,8 +389,10 @@ static bool convert_branch(lima_pp_lir_prog_t* frag_prog,
 	else
 	{
 		branch_instr->sources[1].constant = false;
-		branch_instr->sources[1].reg = get_reg(frag_prog,
-											   block->reg_cond_b.reg->dst.reg.index);
+		lima_pp_lir_reg_t* reg = get_reg(frag_prog,
+										 block->reg_cond_b.reg->dst.reg.index);
+		branch_instr->sources[1].reg = reg;
+		ptrset_add(&reg->uses, branch_instr);
 		if (!branch_instr->sources[1].reg)
 		{
 			lima_pp_lir_instr_delete(branch_instr);

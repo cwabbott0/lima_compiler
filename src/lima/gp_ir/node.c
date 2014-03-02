@@ -769,7 +769,7 @@ void lima_gp_ir_node_delete(lima_gp_ir_node_t* node)
 	}
 	ptrset_delete(node->preds);
 	
-	node->delete(node);
+	node->delete_(node);
 }
 
 /* TODO: make this more efficient/scalable by allocating the stack the heap and
@@ -997,7 +997,7 @@ lima_gp_ir_alu_node_t* lima_gp_ir_alu_node_create(lima_gp_ir_op_e op)
 	alu_node->children_negate[1] = false;
 	alu_node->children_negate[2] = false;
 	
-	alu_node->node.delete = alu_node_delete;
+	alu_node->node.delete_ = alu_node_delete;
 	alu_node->node.print = alu_node_print;
 	alu_node->node.export_node = alu_node_export;
 	alu_node->node.import = alu_node_import;
@@ -1119,7 +1119,7 @@ lima_gp_ir_clamp_const_node_t* lima_gp_ir_clamp_const_node_create()
 	clamp_const_node->low = clamp_const_node->high = 0.0f;
 	clamp_const_node->is_inline_const = true;
 	
-	clamp_const_node->node.delete = clamp_const_node_delete;
+	clamp_const_node->node.delete_ = clamp_const_node_delete;
 	clamp_const_node->node.print = clamp_const_node_print;
 	clamp_const_node->node.export_node = clamp_const_node_export;
 	clamp_const_node->node.import = clamp_const_node_import;
@@ -1215,7 +1215,7 @@ lima_gp_ir_const_node_t* lima_gp_ir_const_node_create()
 		return NULL;
 	}
 	
-	const_node->node.delete = const_node_delete;
+	const_node->node.delete_ = const_node_delete;
 	const_node->node.print = const_node_print;
 	const_node->node.export_node = const_node_export;
 	const_node->node.import = const_node_import;
@@ -1349,7 +1349,7 @@ lima_gp_ir_load_node_t* lima_gp_ir_load_node_create(lima_gp_ir_op_e op)
 	load_node->node.export_node = load_node_export;
 	load_node->node.import = load_node_import;
 	load_node->node.print = load_node_print;
-	load_node->node.delete = load_node_delete;
+	load_node->node.delete_ = load_node_delete;
 	
 	return load_node;
 }
@@ -1474,7 +1474,7 @@ lima_gp_ir_load_reg_node_t* lima_gp_ir_load_reg_node_create(void)
 	load_reg_node->node.export_node = load_reg_node_export;
 	load_reg_node->node.import = load_reg_node_import;
 	load_reg_node->node.print = load_reg_node_print;
-	load_reg_node->node.delete = load_reg_node_delete;
+	load_reg_node->node.delete_ = load_reg_node_delete;
 	load_reg_node->offset = NULL;
 	
 	return load_reg_node;
@@ -1670,7 +1670,7 @@ lima_gp_ir_store_node_t* lima_gp_ir_store_node_create(lima_gp_ir_op_e op)
 	store_node->root_node.node.export_node = store_node_export;
 	store_node->root_node.node.import = store_node_import;
 	store_node->root_node.node.print = store_node_print;
-	store_node->root_node.node.delete = store_node_delete;
+	store_node->root_node.node.delete_ = store_node_delete;
 	store_node->addr = NULL;
 	
 	return store_node;
@@ -1849,7 +1849,7 @@ lima_gp_ir_store_reg_node_t* lima_gp_ir_store_reg_node_create(void)
 	store_reg_node->root_node.node.export_node = store_reg_node_export;
 	store_reg_node->root_node.node.import = store_reg_node_import;
 	store_reg_node->root_node.node.print = store_reg_node_print;
-	store_reg_node->root_node.node.delete = store_reg_node_delete;
+	store_reg_node->root_node.node.delete_ = store_reg_node_delete;
 	
 	return store_reg_node;
 }
@@ -1981,7 +1981,7 @@ lima_gp_ir_branch_node_t* lima_gp_ir_branch_node_create(lima_gp_ir_op_e op)
 	branch_node->root_node.node.export_node = branch_node_export;
 	branch_node->root_node.node.import = branch_node_import;
 	branch_node->root_node.node.print = branch_node_print;
-	branch_node->root_node.node.delete = branch_node_delete;
+	branch_node->root_node.node.delete_ = branch_node_delete;
 	
 	return branch_node;
 }
@@ -2141,7 +2141,7 @@ lima_gp_ir_phi_node_t* lima_gp_ir_phi_node_create(unsigned num_sources)
 	phi_node->node.export_node = phi_node_export;
 	phi_node->node.import = phi_node_import;
 	phi_node->node.print = phi_node_print;
-	phi_node->node.delete = phi_node_delete;
+	phi_node->node.delete_ = phi_node_delete;
 	
 	return phi_node;
 }

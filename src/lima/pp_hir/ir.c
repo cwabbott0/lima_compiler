@@ -774,6 +774,30 @@ const lima_pp_hir_op_t lima_pp_hir_op[] =
 		.input_modifiers = {false, false, false}
 	},
 	{
+		.name = "loadu_2",
+		.args = 0,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = true,
+		.arg_sizes = {0, 0, 0},
+		.is_horizantal = true,
+		.dest_size = 2,
+		.output_modifiers = false,
+		.input_modifiers = {false, false, false}
+	},
+	{
+		.name = "loadu_2_off",
+		.args = 1,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = true,
+		.arg_sizes = {1, 0, 0},
+		.is_horizantal = true,
+		.dest_size = 2,
+		.output_modifiers = false,
+		.input_modifiers = {false, false, false}
+	},
+	{
 		.name = "loadu_4",
 		.args = 0,
 		.commutative = false,
@@ -918,6 +942,30 @@ const lima_pp_hir_op_t lima_pp_hir_op[] =
 		.input_modifiers = {false, false, false}
 	},
 	{
+		.name = "loadt_2",
+		.args = 0,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = true,
+		.arg_sizes = {0, 0, 0},
+		.is_horizantal = true,
+		.dest_size = 2,
+		.output_modifiers = false,
+		.input_modifiers = {false, false, false}
+	},
+	{
+		.name = "loadt_2_off",
+		.args = 1,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = true,
+		.arg_sizes = {1, 0, 0},
+		.is_horizantal = true,
+		.dest_size = 2,
+		.output_modifiers = false,
+		.input_modifiers = {false, false, false}
+	},
+	{
 		.name = "loadt_4",
 		.args = 0,
 		.commutative = false,
@@ -960,6 +1008,30 @@ const lima_pp_hir_op_t lima_pp_hir_op[] =
 		.has_dest = false,
 		.dest_beginning = false,
 		.arg_sizes = {1, 1, 0},
+		.is_horizantal = false,
+		.dest_size = 0,
+		.output_modifiers = false,
+		.input_modifiers = {false, false, false}
+	},
+	{
+		.name = "storet_2",
+		.args = 1,
+		.commutative = false,
+		.has_dest = false,
+		.dest_beginning = false,
+		.arg_sizes = {2, 0, 0},
+		.is_horizantal = false,
+		.dest_size = 0,
+		.output_modifiers = false,
+		.input_modifiers = {false, false, false}
+	},
+	{
+		.name = "storet_2_off",
+		.args = 2,
+		.commutative = false,
+		.has_dest = false,
+		.dest_beginning = false,
+		.arg_sizes = {2, 1, 0},
 		.is_horizantal = false,
 		.dest_size = 0,
 		.output_modifiers = false,

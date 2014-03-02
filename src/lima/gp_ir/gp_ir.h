@@ -25,6 +25,10 @@
 #ifndef __gp_ir_h__
 #define __gp_ir_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "bitset.h"
 #include "ptrset.h"
 #include "list.h"
@@ -188,7 +192,7 @@ typedef struct lima_gp_ir_node_s
 	/* used for reading/writing and printing */
 	unsigned index;
 		
-	lima_gp_ir_node_delete_cb delete;
+	lima_gp_ir_node_delete_cb delete_;
 	
 	lima_gp_ir_node_print_cb print;
 	
@@ -736,5 +740,9 @@ void* lima_gp_ir_codegen(lima_gp_ir_prog_t* ir_prog, unsigned* size,
 bool lima_gp_ir_const_fold_root_node(lima_gp_ir_root_node_t* node);
 bool lima_gp_ir_const_fold_block(lima_gp_ir_block_t* block);
 bool lima_gp_ir_const_fold_prog(lima_gp_ir_prog_t* prog);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

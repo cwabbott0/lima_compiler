@@ -88,7 +88,7 @@ void lima_shader_optimize(lima_shader_t* shader);
 	
 /* compile the code to binary */
 
-bool lima_shader_compile(lima_shader_t* shader);
+bool lima_shader_compile(lima_shader_t* shader, bool dump_ir);
 
 /* print out the GLSL IR */
 
@@ -105,6 +105,10 @@ bool lima_shader_error(lima_shader_t* shader);
  */
 
 const char* lima_shader_info_log(lima_shader_t* shader);
+
+void* lima_shader_get_code(lima_shader_t* shader);
+
+unsigned lima_shader_get_code_size(lima_shader_t* shader);
 
 /* get the shader info structure after compiling, needed by the online compiler
  * interface 

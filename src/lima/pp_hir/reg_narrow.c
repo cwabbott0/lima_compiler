@@ -38,7 +38,7 @@ static bool narrow_combine(lima_pp_hir_cmd_t* cmd)
 	
 	unsigned num_sources = i;
 	
-	if (num_sources == cmd->num_args)
+	if (num_sources == cmd->num_args && num_sources != 1)
 		return true; //Nothing to do here
 	
 	lima_pp_hir_cmd_t* new_cmd;

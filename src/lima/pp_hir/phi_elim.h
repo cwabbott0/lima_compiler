@@ -27,9 +27,17 @@
 
 #include "pp_hir.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 extern bool lima_pp_hir_split_crit_edges(lima_pp_hir_prog_t* prog);
 extern bool lima_pp_hir_convert_to_cssa(lima_pp_hir_prog_t* prog);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

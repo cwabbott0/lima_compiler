@@ -204,13 +204,15 @@ bool lima_gp_ir_liveness_compute_prog(lima_gp_ir_prog_t* prog, bool virt)
 	
 	fixed_queue_t work_queue = fixed_queue_create(prog->num_blocks);
 	
-	if (prog->num_blocks >= 1)
+	lima_gp_ir_block_t* block;
+	gp_ir_prog_for_each_block(prog, block)
+	{
 		fixed_queue_push(&work_queue, (void*)gp_ir_prog_last_block(prog));
+	}
 	
 	while (!fixed_queue_is_empty(work_queue))
 	{
-		lima_gp_ir_block_t* block =
-			(lima_gp_ir_block_t*)fixed_queue_pop(&work_queue);
+		block = (lima_gp_ir_block_t*) fixed_queue_pop(&work_queue);
 		
 		bool changed;
 		if (!lima_gp_ir_liveness_compute_block(block, virt, &changed))

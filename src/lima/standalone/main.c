@@ -40,6 +40,7 @@
 "\t\tDefault: Mali-400\n" \
 "\t--dump-hir -- print the GLSL IR before optimization\n" \
 "\t--dump-lir -- print the GLSL IR after optimization\n" \
+"\t--dump-ir  -- print the backend-specific IR\n" \
 "\t--dump-asm (-d) -- print out the resulting assembly\n" \
 "\t--syntax [verbose|explicit|decompile] -- " \
 "choose the syntax for the disassembly\n\n" \
@@ -111,7 +112,7 @@ static void shader_errors(lima_shader_t* shader)
 
 int main(int argc, char** argv)
 {
-	bool dump_asm = false, dump_hir = false, dump_lir = false;
+	bool dump_asm = false, dump_hir = false, dump_lir = false, dump_ir = false;
 	lima_shader_stage_e stage = lima_shader_stage_unknown;
 	lima_core_e core = lima_core_mali_400;
 	lima_asm_syntax_e syntax = lima_asm_syntax_unknown;
@@ -123,6 +124,7 @@ int main(int argc, char** argv)
 		{"core",     required_argument, NULL, 'c'},
 		{"dump-hir", no_argument,       NULL, 'i'},
 		{"dump-lir", no_argument,       NULL, 'l'},
+		{"dump-ir",  no_argument,       NULL, 'r'},
 		{"dump-asm", no_argument,       NULL, 'd'},
 		{"syntax",   required_argument, NULL, 's'},
 		{"output",   required_argument, NULL, 'o'},
@@ -176,6 +178,10 @@ int main(int argc, char** argv)
 				
 			case 'l':
 				dump_lir = true;
+				break;
+				
+			case 'r':
+				dump_ir = true;
 				break;
 				
 			case 's':
@@ -289,7 +295,7 @@ int main(int argc, char** argv)
 		printf("\n\n");
 	}
 	
-	lima_shader_compile(shader);
+	lima_shader_compile(shader, dump_ir);
 	
 	if (lima_shader_error(shader))
 		shader_errors(shader);

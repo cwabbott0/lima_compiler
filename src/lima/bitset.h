@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#ifndef MAX2
+#define MAX2(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-#ifndef MIN
-#define MIN(a, b) ((a) > (b) ? (b) : (a))
+#ifndef MIN2
+#define MIN2(a, b) ((a) > (b) ? (b) : (a))
 #endif
 
 typedef struct {
@@ -28,7 +28,7 @@ static inline bitset_t bitset_create(unsigned size)
 {
 	bitset_t ret;
 	ret.size = (size + 31) / 32;
-	ret.bits = calloc(ret.size, sizeof(uint32_t));
+	ret.bits = (uint32_t*) calloc(ret.size, sizeof(uint32_t));
 	return ret;
 }
 
@@ -36,7 +36,7 @@ static inline bitset_t bitset_create_full(unsigned size)
 {
 	bitset_t ret;
 	ret.size = (size + 31) / 32;
-	ret.bits = calloc(ret.size, sizeof(uint32_t));
+	ret.bits = (uint32_t*) calloc(ret.size, sizeof(uint32_t));
 	memset(ret.bits, 0xFF, (size / 32) * sizeof(uint32_t));
 	if (size % 32 != 0)
 		ret.bits[ret.size - 1] = (1 << (size % 32)) - 1;
@@ -47,7 +47,7 @@ static inline void bitset_copy(bitset_t* dest, bitset_t src)
 {
 	if (dest->size != src.size)
 	{
-		dest->bits = realloc(dest->bits, src.size);
+		dest->bits = (uint32_t*) realloc(dest->bits, src.size);
 		dest->size = src.size;
 	}
 	memcpy(dest->bits, src.bits, src.size * sizeof(uint32_t));
@@ -106,7 +106,7 @@ static inline void bitset_union(bitset_t* dest, bitset_t src)
 	unsigned i;
 	if (src.size > dest->size)
 	{
-		dest->bits = realloc(dest->bits, src.size);
+		dest->bits = (uint32_t*) realloc(dest->bits, src.size);
 		memset(&dest->bits[dest->size], 0, sizeof(uint32_t) * (src.size - dest->size));
 		dest->size = src.size;
 	}
@@ -117,7 +117,7 @@ static inline void bitset_union(bitset_t* dest, bitset_t src)
 //dest = dest AND src
 static inline void bitset_disjunction(bitset_t* dest, bitset_t src)
 {
-	unsigned i, min_size = MIN(dest->size, src.size);
+	unsigned i, min_size = MIN2(dest->size, src.size);
 	for (i = 0; i < min_size; i++)
 		dest->bits[i] &= src.bits[i];
 	for (; i < dest->size; i++)
@@ -127,7 +127,7 @@ static inline void bitset_disjunction(bitset_t* dest, bitset_t src)
 //dest = dest - src
 static inline void bitset_subtract(bitset_t* dest, bitset_t src)
 {
-	unsigned i, min_size = MIN(dest->size, src.size);
+	unsigned i, min_size = MIN2(dest->size, src.size);
 	for (i = 0; i < min_size; i++)
 		dest->bits[i] &= ~src.bits[i];
 }

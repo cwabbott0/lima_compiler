@@ -25,6 +25,10 @@
 #ifndef __pp_lir_h__
 #define __pp_lir_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "../pp_hir/pp_hir.h"
 #include "bitset.h"
 #include "ptrset.h"
@@ -378,5 +382,9 @@ static inline bool lima_pp_lir_channel_used(lima_pp_lir_instr_t* instr, unsigned
 		return true;
 	return instr->dest.mask[channel];
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

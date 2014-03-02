@@ -328,13 +328,13 @@ static bool liveness_calc_block(lima_pp_lir_block_t* block)
 			bitset_copy(&instr->live_out, last->live_in);
 		}
 		
-		if (!lima_pp_lir_liveness_calc_scheduled_instr(instr))
-			return false;
+		lima_pp_lir_liveness_calc_scheduled_instr(instr);
 		
 		last = instr;
 	}
 	
-	return true;
+	//last is now the first instruction of the block
+	return !bitset_equal(last->live_in, block->live_in);
 }
 
 bool lima_pp_lir_liveness_calc_block(lima_pp_lir_block_t* block)
@@ -371,8 +371,15 @@ void lima_pp_lir_liveness_calc_prog(lima_pp_lir_prog_t* prog)
 	fixed_queue_t work_queue = fixed_queue_create(prog->num_blocks);
 
 	for (i = 0; i < prog->num_blocks; i++)
-		if (prog->blocks[i]->is_end)
-			fixed_queue_push(&work_queue, (void*)prog->blocks[i]);
+	{
+		lima_pp_lir_block_t* block = prog->blocks[i];
+		if (lima_pp_lir_liveness_calc_block(block))
+		{
+			for (i = 0; i < block->num_preds; i++)
+				fixed_queue_push(&work_queue,
+								 (void*)prog->blocks[block->preds[i]]);
+		}
+	}
 	
 	while (!fixed_queue_is_empty(work_queue))
 	{

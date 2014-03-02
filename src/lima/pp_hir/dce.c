@@ -49,12 +49,34 @@ static bool dead_code_eliminate(lima_pp_hir_prog_t* prog)
 		{
 			if (lima_pp_hir_op_is_store(cmd->op) ||
 				ptrset_size(cmd->block_uses) > 0)
-			{
 				cmd->is_live = true;
-				fixed_queue_push(&work_queue, cmd);
-			}
 			else
 				cmd->is_live = false;
+		}
+	}
+	
+	pp_hir_prog_for_each_block(prog, block)
+	{
+		if (!block->is_end &&
+			block->branch_cond != lima_pp_hir_branch_cond_always)
+		{
+			if (!block->reg_cond_a.constant)
+				block->reg_cond_a.reg->is_live = true;
+			if (!block->reg_cond_b.constant)
+				block->reg_cond_b.reg->is_live = true;
+		}
+		
+		if (block->is_end && !block->discard)
+			block->output->is_live = true;
+	}
+	
+	pp_hir_prog_for_each_block(prog, block)
+	{
+		lima_pp_hir_cmd_t* cmd;
+		pp_hir_block_for_each_cmd(block, cmd)
+		{
+			if (cmd->is_live)
+				fixed_queue_push(&work_queue, cmd);
 		}
 	}
 	
@@ -102,6 +124,8 @@ bool lima_pp_hir_dead_code_eliminate(lima_pp_hir_prog_t* prog)
 	{
 		if (!lima_pp_hir_reg_narrow(prog))
 			return false;
+		
+		lima_pp_hir_prog_print(prog);
 		
 		progress = dead_code_eliminate(prog);
 	}
