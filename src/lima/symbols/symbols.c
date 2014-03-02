@@ -23,6 +23,7 @@
  */
 
 #include "symbols/symbols.h"
+#define _GNU_SOURCE /* for asprintf on linux */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -579,12 +579,8 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_assignment* ir)
 
 static lima_pp_hir_source_t get_const_source(float* value)
 {
-	lima_pp_hir_source_t ret = {
-		.constant = true,
-		.swizzle = {0, 1, 2, 3},
-		.absolute = false,
-		.negate = false
-	};
+	lima_pp_hir_source_t ret = lima_pp_hir_source_default;
+	ret.constant = true;
 	
 	ret.depend = malloc(4 * sizeof(float));
 	memcpy(ret.depend, value, 4 * sizeof(float));

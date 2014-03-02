@@ -1,11 +1,17 @@
 CUR_DIR = $(shell pwd)
 TOP_SRC_DIR = $(CUR_DIR)/..
 TOP_DIR = $(TOP_SRC_DIR)/..
-CFLAGS += -Wall -Wextra -g -fPIC
+CFLAGS += -Wall -Wextra --std=gnu99 -g -fPIC
 CFLAGS += -I $(CUR_DIR)
 CFLAGS += -I $(TOP_SRC_DIR)/glsl
 CFLAGS += -I $(TOP_SRC_DIR)/mesa
 CFLAGS += -I $(TOP_DIR)/include
+
+CXXFLAGS += -Wall -Wextra --std=gnu++03 -g -fPIC
+CXXFLAGS += -I $(CUR_DIR)
+CXXFLAGS += -I $(TOP_SRC_DIR)/glsl
+CXXFLAGS += -I $(TOP_SRC_DIR)/mesa
+CXXFLAGS += -I $(TOP_DIR)/include
 
 NAME = limasc
 LIB_NAME = lib$(NAME).so
@@ -53,7 +59,7 @@ $(C_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(CXX_OBJECTS): %.o: %.cpp
-	$(CXX) $(CFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(STANDALONE_OBJECTS): %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
