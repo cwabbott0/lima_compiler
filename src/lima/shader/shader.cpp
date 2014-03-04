@@ -284,6 +284,8 @@ static void compile_pp_shader(lima_shader_t* shader, bool dump_ir)
 		lima_pp_hir_prog_print(shader->ir.pp.hir_prog);
 	}
 	
+	fill_fs_info(shader->ir.pp.hir_prog, &shader->info);
+	
 	lima_pp_hir_convert_to_cssa(shader->ir.pp.hir_prog);
 	
 	shader->ir.pp.lir_prog = lima_pp_lir_convert(shader->ir.pp.hir_prog);
@@ -318,6 +320,10 @@ static void compile_pp_shader(lima_shader_t* shader, bool dump_ir)
 	
 	void* code = lima_pp_lir_codegen(shader->ir.pp.lir_prog, &shader->code_size);
 	
+	//get first instruction length
+	uint32_t first_instr_control = *((uint32_t*)code);
+	shader->info.fs.first_instr_length = first_instr_control & 0x1F;
+	
 	shader->code = ralloc_size(shader->mem_ctx, shader->code_size);
 	memcpy(shader->code, code, shader->code_size);
 	free(code);
@@ -342,20 +348,6 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 	}
 	lima_shader_symbols_print(&shader->symbols);
 	
-	//XXX fill me in
-	shader->info.vs.num_instructions = 0;
-	shader->info.vs.attrib_prefetch = 0;
-	shader->info.fs.stack_size = 1;
-	shader->info.fs.stack_offset = 1;
-	shader->info.fs.has_discard = false;
-	shader->info.fs.reads_color = false;
-	shader->info.fs.writes_color = true;
-	shader->info.fs.reads_depth = false;
-	shader->info.fs.writes_depth = false;
-	shader->info.fs.reads_stencil = false;
-	shader->info.fs.writes_stencil = false;
-	shader->info.fs.first_instr_length = 0;
-	
 	_mesa_print_ir(shader->linked_shader->ir, shader->state);
 	
 	if (shader->stage == lima_shader_stage_fragment)
@@ -366,6 +358,10 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 	else
 	{
 		//TODO
+		
+		//XXX fill me in
+		shader->info.vs.num_instructions = 0;
+		shader->info.vs.attrib_prefetch = 0;
 	}
 	
 	//TODO

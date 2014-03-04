@@ -22,56 +22,34 @@
  * THE SOFTWARE.
  */
 
-#include "shader.h"
-#include "program.h"
-#include "symbols/symbols.h"
-#include "glsl_parser_extras.h"
-#include "main/hash_table.h"
-#include "ralloc.h"
 #include "pp_hir/pp_hir.h"
-#include "pp_lir/pp_lir.h"
-#include "gp_ir/gp_ir.h"
+#include "shader.h"
 
-struct lima_shader_s
+void fill_fs_info(lima_pp_hir_prog_t* prog, lima_shader_info_t* info)
 {
-	void* mem_ctx;
+	info->fs.stack_size = 1;
+	info->fs.stack_offset = 1;
+	info->fs.has_discard = false;
+	info->fs.reads_color = false;
+	info->fs.writes_color = true;
+	info->fs.reads_depth = false;
+	info->fs.writes_depth = false;
+	info->fs.reads_stencil = false;
+	info->fs.writes_stencil = false;
 	
-	lima_shader_stage_e stage;
-	lima_core_e core;
-	
-	struct gl_context mesa_ctx;
-	_mesa_glsl_parse_state* state;
-	
-	struct hash_table* glsl_symbols;
-	
-	struct gl_shader* shader, *linked_shader;
-	struct gl_shader_program* whole_program;
-	
-	lima_shader_symbols_t symbols;
-	
-	char* info_log;
-	
-	union {
-		struct {
-			lima_pp_hir_prog_t* hir_prog;
-			lima_pp_lir_prog_t* lir_prog;
-		} pp;
-		struct {
-			lima_gp_ir_prog_t* gp_prog;
-		} gp;
-	} ir;
-	
-	void* code;
-	unsigned code_size;
-	
-	lima_shader_info_t info;
-	
-	bool parsed; /* whether the shader was parsed without any errors */
-	bool compiled; /* whether the shader was lowered to assembly without any errors */
-	bool errors;
-};
-
-void lima_convert_symbols(lima_shader_t* shader);
-void lima_lower_to_pp_hir(lima_shader_t* shader);
-
-extern "C" void fill_fs_info(lima_pp_hir_prog_t* prog, lima_shader_info_t* info);
+	lima_pp_hir_block_t* block;
+	pp_hir_prog_for_each_block(prog, block)
+	{
+		lima_pp_hir_cmd_t* cmd;
+		pp_hir_block_for_each_cmd(block, cmd)
+		{
+			if (cmd->op == lima_pp_hir_op_fb_color)
+				info->fs.reads_color = true;
+			if (cmd->op == lima_pp_hir_op_fb_depth)
+				info->fs.reads_depth = true;
+		}
+		
+		if (block->is_end && block->discard)
+			info->fs.has_discard = true;
+	}
+}
