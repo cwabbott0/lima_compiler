@@ -34,6 +34,7 @@
 #include "loop_analysis.h"
 #include "program.h"
 #include "linker.h"
+#include "lower/lower.h"
 #include "standalone_scaffolding.h"
 
 extern "C" struct gl_shader *
@@ -328,6 +329,8 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 		return true;
 	
 	convert_to_ssa(shader->linked_shader->ir);
+	
+	lima_lower_conditions(shader->linked_shader->ir);
 	
 	lima_convert_symbols(shader);
 	if (!lima_shader_symbols_pack(&shader->symbols, shader->stage))

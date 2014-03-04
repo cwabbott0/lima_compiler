@@ -385,7 +385,7 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_return* ir)
 
 ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_discard* ir)
 {
-	//TODO lower discards with non-null condition
+	//conditions were removed by lima_lower_conditions()
 	assert(ir->condition == NULL);
 	(void) ir;
 	
@@ -565,7 +565,7 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_function* ir)
 
 ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_assignment* ir)
 {
-	//TODO: handle conditions (only for non-SSA variables...)
+	//conditions were lowered by lima_lower_conditions
 	assert(ir->condition == NULL);
 	
 	this->in_assignee = false;
