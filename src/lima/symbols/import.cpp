@@ -41,16 +41,18 @@ class symbol_convert_visitor : public ir_hierarchical_visitor
 {
 public:
 	symbol_convert_visitor(lima_shader_symbols_t* symbols,
+						   lima_core_e core,
 						   lima_shader_stage_e stage,
 						   struct hash_table* glsl_symbols)
-		: symbols(symbols), stage(stage), glsl_symbols(glsl_symbols),
-		  unused(false)
+		: symbols(symbols), core(core), stage(stage),
+		  glsl_symbols(glsl_symbols), unused(false)
 	{
 	}
 	
 	ir_visitor_status visit(ir_variable* ir);
 	
 	lima_shader_symbols_t* symbols;
+	lima_core_e core;
 	lima_shader_stage_e stage;
 	struct hash_table* glsl_symbols;
 	bool unused;
@@ -192,6 +194,37 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 		ir->data.mode == ir_var_shader_out)
 		return visit_continue;
 	
+	if (strcmp(ir->name, "gl_FrontFacing") == 0)
+		return visit_continue;
+	
+	if (strcmp(ir->name, "gl_PointCoord") == 0)
+	{
+		if (this->core == lima_core_mali_200)
+		{
+			lima_symbol_t* scale_bias =
+				lima_symbol_create(lima_symbol_vec4, lima_precision_medium,
+								   "gl_mali_PointCoordScaleBias", 0);
+			
+			lima_shader_symbols_add_uniform(this->symbols, scale_bias);
+		}
+		
+		return visit_continue;
+	}
+	
+	if (strcmp(ir->name, "gl_FragCoord") == 0)
+	{
+		if (this->core == lima_core_mali_200)
+		{
+			lima_symbol_t* scale_bias =
+				lima_symbol_create(lima_symbol_vec4, lima_precision_medium,
+								   "gl_mali_FragCoordScale", 0);
+			
+			lima_shader_symbols_add_uniform(this->symbols, scale_bias);
+		}
+		
+		return visit_continue;
+	}
+	
 	if (this->unused && (ir->data.mode != ir_var_shader_out ||
 		lima_symbol_table_find(&this->symbols->varying_table, ir->name)))
 		return visit_continue;
@@ -234,7 +267,7 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 
 void lima_convert_symbols(lima_shader_t* shader)
 {
-	symbol_convert_visitor v(&shader->symbols, shader->stage,
+	symbol_convert_visitor v(&shader->symbols, shader->core, shader->stage,
 							 shader->glsl_symbols);
 	v.run(shader->linked_shader->ir);
 	if (shader->stage == lima_shader_stage_vertex)

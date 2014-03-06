@@ -49,7 +49,9 @@ namespace {
 class ir_to_pp_hir_visitor : public ir_hierarchical_visitor
 {
 public:
-	ir_to_pp_hir_visitor(lima_pp_hir_prog_t* prog, struct hash_table* glsl_symbols,
+	ir_to_pp_hir_visitor(lima_pp_hir_prog_t* prog, lima_core_e core,
+						 lima_shader_symbols_t* symbols,
+						 struct hash_table* glsl_symbols,
 						 ir_dead_branches_visitor* dbv);
 	
 	~ir_to_pp_hir_visitor();
@@ -101,6 +103,8 @@ private:
 	
 	void handle_deref(ir_dereference* ir);
 	
+	lima_core_e core;
+	
 	lima_pp_hir_prog_t* prog;
 	lima_pp_hir_block_t* cur_block;
 	//blocks to jump to for break and continue
@@ -108,6 +112,7 @@ private:
 	lima_pp_hir_cmd_t* cur_cmd, *output_cmd;
 	struct hash_table* var_to_cmd;
 	
+	lima_shader_symbols_t* symbols;
 	struct hash_table* glsl_symbols;
 	
 	ir_dead_branches_visitor* dbv;
@@ -146,8 +151,8 @@ void lima_lower_to_pp_hir(lima_shader_t* shader)
 	dbv.run(shader->linked_shader->ir);
 	
 	shader->ir.pp.hir_prog = lima_pp_hir_prog_create();
-	ir_to_pp_hir_visitor v(shader->ir.pp.hir_prog, shader->glsl_symbols,
-						   &dbv);
+	ir_to_pp_hir_visitor v(shader->ir.pp.hir_prog, shader->core,
+						   &shader->symbols, shader->glsl_symbols, &dbv);
 	v.run(shader->linked_shader->ir);
 	
 	lima_pp_hir_prog_add_predecessors(shader->ir.pp.hir_prog);
@@ -160,9 +165,12 @@ void lima_lower_to_pp_hir(lima_shader_t* shader)
 }
 
 ir_to_pp_hir_visitor::ir_to_pp_hir_visitor(lima_pp_hir_prog_t* prog,
+										   lima_core_e core,
+										   lima_shader_symbols_t* symbols,
 										   struct hash_table* glsl_symbols,
 										   ir_dead_branches_visitor* dbv)
-	: prog(prog), glsl_symbols(glsl_symbols), dbv(dbv)
+	: core(core), prog(prog), symbols(symbols), glsl_symbols(glsl_symbols),
+	  dbv(dbv)
 {
 	this->cur_block = lima_pp_hir_block_create();
 	lima_pp_hir_prog_insert_start(this->cur_block, prog);
@@ -1140,7 +1148,122 @@ ir_visitor_status ir_to_pp_hir_visitor::visit(ir_dereference_variable* ir)
 		return visit_continue;
 	}
 	
-	//TODO: gl_FragCoord, gl_PointCoord, gl_FrontFacing
+	if (strcmp(ir->var->name, "gl_FrontFacing") == 0)
+	{
+		lima_pp_hir_cmd_t* cmd =
+			lima_pp_hir_cmd_create(lima_pp_hir_op_front_facing);
+		cmd->dst.reg.size = 0;
+		cmd->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, cmd);
+		this->cur_cmd = cmd;
+		
+		return visit_continue;
+	}
+	
+	if (strcmp(ir->var->name, "gl_FragCoord") == 0)
+	{
+		lima_pp_hir_cmd_t* load_cmd =
+			lima_pp_hir_cmd_create(lima_pp_hir_op_frag_coord_impl);
+		load_cmd->dst.reg.size = 3;
+		load_cmd->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, load_cmd);
+		
+		lima_pp_hir_cmd_t* xyz_cmd;
+		if (this->core == lima_core_mali_200)
+		{
+			lima_symbol_t* scale_sym =
+				lima_symbol_table_find(&this->symbols->uniform_table,
+									   "gl_mali_FragCoordScale");
+			
+			lima_pp_hir_cmd_t* scale =
+				lima_pp_hir_cmd_create(lima_pp_hir_op_loadu_four);
+			scale->load_store_index = scale_sym->offset;
+			scale->dst.reg.size = 3;
+			scale->dst.reg.index = this->prog->reg_alloc++;
+			lima_pp_hir_block_insert_end(this->cur_block, scale);
+			
+			lima_pp_hir_cmd_t* mul = lima_pp_hir_cmd_create(lima_pp_hir_op_mul);
+			mul->src[0].depend = load_cmd;
+			mul->src[1].depend = scale;
+			mul->dst.reg.size = 2;
+			mul->dst.reg.index = this->prog->reg_alloc++;
+			lima_pp_hir_block_insert_end(this->cur_block, mul);
+			
+			xyz_cmd = mul;
+		}
+		else
+		{
+			lima_pp_hir_cmd_t* mov = lima_pp_hir_cmd_create(lima_pp_hir_op_mov);
+			mov->src[0].depend = load_cmd;
+			mov->dst.reg.size = 2;
+			mov->dst.reg.index = this->prog->reg_alloc++;
+			lima_pp_hir_block_insert_end(this->cur_block, mov);
+			
+			xyz_cmd = mov;
+		}
+		
+		lima_pp_hir_cmd_t* rcp = lima_pp_hir_cmd_create(lima_pp_hir_op_rcp);
+		rcp->src[0].depend = load_cmd;
+		rcp->src[0].swizzle[0] = 3;
+		rcp->dst.reg.size = 0;
+		rcp->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, rcp);
+		
+		lima_pp_hir_cmd_t* combine = lima_pp_hir_combine_create(2);
+		combine->src[0].depend = xyz_cmd;
+		combine->src[1].depend = rcp;
+		combine->dst.reg.size = 3;
+		combine->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, combine);
+		
+		this->cur_cmd = combine;
+		return visit_continue;
+	}
+	
+	if (strcmp(ir->var->name, "gl_PointCoord") == 0)
+	{
+		lima_pp_hir_cmd_t* load_cmd =
+			lima_pp_hir_cmd_create(lima_pp_hir_op_point_coord_impl);
+		load_cmd->dst.reg.size = 1;
+		load_cmd->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, load_cmd);
+		
+		if (this->core == lima_core_mali_400)
+		{
+			this->cur_cmd = load_cmd;
+			return visit_continue;
+		}
+		
+		lima_symbol_t* scale_bias_sym =
+		lima_symbol_table_find(&this->symbols->uniform_table,
+							   "gl_mali_PointCoordScaleBias");
+		
+		lima_pp_hir_cmd_t* scale_bias =
+			lima_pp_hir_cmd_create(lima_pp_hir_op_loadu_four);
+		scale_bias->load_store_index = scale_bias_sym->offset;
+		scale_bias->dst.reg.size = 1;
+		scale_bias->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, scale_bias);
+		
+		lima_pp_hir_cmd_t* mul = lima_pp_hir_cmd_create(lima_pp_hir_op_mul);
+		mul->src[0].depend = load_cmd;
+		mul->src[1].depend = scale_bias;
+		mul->dst.reg.size = 1;
+		mul->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, mul);
+		
+		lima_pp_hir_cmd_t* add = lima_pp_hir_cmd_create(lima_pp_hir_op_add);
+		add->src[0].depend = scale_bias;
+		add->src[0].swizzle[0] = 2;
+		add->src[0].swizzle[1] = 3;
+		add->src[1].depend = mul;
+		add->dst.reg.size = 1;
+		add->dst.reg.index = this->prog->reg_alloc++;
+		lima_pp_hir_block_insert_end(this->cur_block, add);
+		
+		this->cur_cmd = add;
+		return visit_continue;
+	}
 	
 	if (ir->var->data.mode == ir_var_temporary_ssa)
 	{
@@ -1522,6 +1645,7 @@ void ir_to_pp_hir_visitor::emit_load(ir_variable_mode mode, unsigned offset,
 	if ((mode == ir_var_temporary
 		 || mode == ir_var_auto
 		 || mode == ir_var_uniform)
+		
 		&& num_components == 3)
 	{
 		cmd->dst.reg.size = 3;
