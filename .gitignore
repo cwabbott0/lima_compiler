@@ -72,3 +72,5 @@ glsl_compiler
 
 src/lima/limasc
 src/lima/liblimasc.so
+
+*.DS_Store
