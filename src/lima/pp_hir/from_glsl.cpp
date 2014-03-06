@@ -150,6 +150,8 @@ void lima_lower_to_pp_hir(lima_shader_t* shader)
 						   &dbv);
 	v.run(shader->linked_shader->ir);
 	
+	lima_pp_hir_prog_add_predecessors(shader->ir.pp.hir_prog);
+	
 	ir_phi_rewrite_visitor prv(&v);
 	prv.run(shader->linked_shader->ir);
 	
