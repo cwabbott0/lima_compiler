@@ -159,6 +159,8 @@ typedef enum
 	lima_pp_hir_op_dot2,
 	lima_pp_hir_op_dot3,
 	lima_pp_hir_op_dot4,
+	
+	lima_pp_hir_op_lrp,
 
 	/* NOTE:
 	 * We only include the comparison operators the acc units can handle directly,

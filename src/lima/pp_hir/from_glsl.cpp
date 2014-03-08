@@ -870,7 +870,12 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_expression* ir)
 			cmd->src[1].depend = sources[1];
 			break;
 			
-		//TODO: ir_triop_lrp
+		case ir_triop_lrp:
+			cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_lrp);
+			cmd->src[0].depend = sources[0];
+			cmd->src[1].depend = sources[1];
+			cmd->src[2].depend = sources[2];
+			break;
 			
 		case ir_triop_csel:
 			//TODO: fix the case where the swizzle isn't all the same

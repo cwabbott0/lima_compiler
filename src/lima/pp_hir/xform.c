@@ -170,7 +170,7 @@ static bool sign_xform(lima_pp_hir_cmd_t* cmd)
 	c[0] = lima_pp_hir_cmd_create(lima_pp_hir_op_gt);
 	c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_gt);
 	c[2] = lima_pp_hir_cmd_create(lima_pp_hir_op_add);
-	if (!c[0] || !c[1] || !c[2] || !c[3])
+	if (!c[0] || !c[1] || !c[2])
 	{
 		free(const0);
 		free(const1);
@@ -895,6 +895,84 @@ static bool dot4_xform(lima_pp_hir_cmd_t* cmd)
 	return true;
 }
 
+static bool lrp_xform(lima_pp_hir_cmd_t* cmd)
+{
+	/* %temp1 = mul %y, %t;
+	 * %temp2 = sub 1, %t;
+	 * %temp3 = mul %temp2, %x;
+	 * %out = add %temp1, %temp3;
+	 *
+	 * The first two can be done in one cycle, and the second two can be done
+	 * in one cycle, meaning the lerp can be done in 2 cycles.
+	 */
+	
+	lima_pp_hir_cmd_t* c[4];
+	
+	c[0] = lima_pp_hir_cmd_create(lima_pp_hir_op_mul);
+	c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_add);
+	c[2] = lima_pp_hir_cmd_create(lima_pp_hir_op_mul);
+	c[3] = lima_pp_hir_cmd_create(lima_pp_hir_op_add);
+	
+	if (!c[0] || !c[1] || !c[2] || !c[3])
+	{
+		lima_pp_hir_cmd_delete(c[0]);
+		lima_pp_hir_cmd_delete(c[1]);
+		lima_pp_hir_cmd_delete(c[2]);
+		lima_pp_hir_cmd_delete(c[3]);
+		return false;
+	}
+	
+	lima_pp_hir_reg_t ireg[3];
+	ireg[0] = (lima_pp_hir_reg_t)
+		{ { cmd->block->prog->reg_alloc++, cmd->dst.reg.size } };
+	ireg[1] = (lima_pp_hir_reg_t)
+		{ { cmd->block->prog->reg_alloc++, cmd->dst.reg.size } };
+	ireg[2] = (lima_pp_hir_reg_t)
+		{ { cmd->block->prog->reg_alloc++, cmd->dst.reg.size } };
+	
+	c[0]->src[0] = lima_pp_hir_source_copy(cmd->src[1]);
+	c[0]->src[1] = lima_pp_hir_source_copy(cmd->src[2]);
+	c[0]->dst = lima_pp_hir_dest_default;
+	c[0]->dst.reg = ireg[0];
+	
+	c[1]->src[0] = lima_pp_hir_source_default;
+	c[1]->src[0].constant = true;
+	double* constant = malloc(4 * sizeof(double));
+	if (!constant)
+	{
+		lima_pp_hir_cmd_delete(c[0]);
+		lima_pp_hir_cmd_delete(c[1]);
+		lima_pp_hir_cmd_delete(c[2]);
+		lima_pp_hir_cmd_delete(c[3]);
+		return false;
+	}
+	constant[0] = constant[1] = constant[2] = constant[3] = 1.0;
+	c[1]->src[0].depend = constant;
+	c[1]->src[1] = lima_pp_hir_source_copy(cmd->src[2]);
+	c[1]->src[1].negate = !c[1]->src[1].negate;
+	c[1]->dst = lima_pp_hir_dest_default;
+	c[1]->dst.reg = ireg[1];
+	
+	c[2]->src[0] = lima_pp_hir_source_default;
+	c[2]->src[0].depend = c[1];
+	c[2]->src[1] = lima_pp_hir_source_copy(cmd->src[0]);
+	c[2]->dst = lima_pp_hir_dest_default;
+	c[2]->dst.reg = ireg[2];
+	
+	c[3]->src[0] = lima_pp_hir_source_default;
+	c[3]->src[0].depend = c[0];
+	c[3]->src[1] = lima_pp_hir_source_default;
+	c[3]->src[1].depend = c[2];
+	c[3]->dst = cmd->dst;
+	
+	lima_pp_hir_cmd_replace_uses(cmd, c[3]);
+	lima_pp_hir_block_replace(cmd, c[0]);
+	lima_pp_hir_block_insert(c[1], c[0]);
+	lima_pp_hir_block_insert(c[2], c[1]);
+	lima_pp_hir_block_insert(c[3], c[2]);
+	return true;
+}
+
 static bool any_xform(lima_pp_hir_cmd_t* cmd, unsigned num_components)
 {
 	lima_pp_hir_cmd_t* c[2];
@@ -1062,6 +1140,8 @@ bool (*lima_pp_hir_xform[])(lima_pp_hir_cmd_t* cmd) =
 	dot2_xform,
 	dot3_xform,
 	dot4_xform,
+	
+	lrp_xform,
 
 	NULL,
 	NULL,

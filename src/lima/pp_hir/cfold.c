@@ -74,6 +74,9 @@ static inline double _ne(double x, double y)
 static inline double _not(double x)
 	{ return (x == 0.0 ? 1.0 : 0.0); }
 
+static inline double _lrp(double x, double y, double t)
+	{ return x * (1 - t) + y * t; }
+
 
 
 
@@ -473,6 +476,16 @@ static lima_pp_hir_vec4_t dot4_cfold(lima_pp_hir_vec4_t* args)
 	};
 }
 
+static lima_pp_hir_vec4_t lrp_cfold(lima_pp_hir_vec4_t* args)
+{
+	return (lima_pp_hir_vec4_t){
+		.x = _lrp(args[0].x, args[1].x, args[2].x),
+		.y = _lrp(args[0].y, args[1].y, args[2].y),
+		.z = _lrp(args[0].z, args[1].z, args[2].z),
+		.w = _lrp(args[0].w, args[1].w, args[2].w),
+	};
+}
+
 static lima_pp_hir_vec4_t gt_cfold(lima_pp_hir_vec4_t* args)
 {
 	return (lima_pp_hir_vec4_t){
@@ -643,6 +656,8 @@ lima_pp_hir_vec4_t (*lima_pp_hir_cfold[])(lima_pp_hir_vec4_t* args) =
 	dot2_cfold,
 	dot3_cfold,
 	dot4_cfold,
+	
+	lrp_cfold,
 	
 	gt_cfold,
 	ge_cfold,

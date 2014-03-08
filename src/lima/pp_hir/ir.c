@@ -589,6 +589,19 @@ const lima_pp_hir_op_t lima_pp_hir_op[] =
 		.output_modifiers = true,
 		.input_modifiers = {true, true, false}
 	},
+	
+	{
+		.name = "lrp",
+		.args = 3,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {0, 0, 0},
+		.is_horizantal = false,
+		.dest_size = 1,
+		.output_modifiers = true,
+		.input_modifiers = {true, true, true}
+	},
 
 	{
 		.name = "gt",
