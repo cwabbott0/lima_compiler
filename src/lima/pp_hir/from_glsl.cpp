@@ -842,7 +842,7 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_expression* ir)
 					break;
 					
 				case 3:
-					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_any4);
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_dot4);
 					cmd->src[0].depend = sources[0];
 					cmd->src[1].depend = sources[1];
 					break;

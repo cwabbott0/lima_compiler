@@ -338,6 +338,10 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 	
 	lima_lower_conditions(shader->linked_shader->ir);
 	
+	lima_lower_scalar_args(shader->linked_shader->ir);
+	
+	_mesa_print_ir(shader->linked_shader->ir, shader->state);
+	
 	lima_convert_symbols(shader);
 	if (!lima_shader_symbols_pack(&shader->symbols, shader->stage))
 	{

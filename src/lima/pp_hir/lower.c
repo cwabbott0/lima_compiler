@@ -116,6 +116,8 @@ static bool append_instr(lima_pp_lir_block_t* block,
 	if (!sched_instr)
 		return false;
 	
+	assert(instr->sched_instr);
+	
 	lima_pp_lir_block_insert_end(block, sched_instr);
 	return true;
 }

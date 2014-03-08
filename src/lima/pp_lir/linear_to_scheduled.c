@@ -456,11 +456,7 @@ lima_pp_lir_scheduled_instr_t* lima_pp_lir_instr_to_sched_instr(
 			if (!new_instr)
 				return false;
 
-			for (i = 0; i < 4; i++)
-			{
-				new_instr->sources[0].swizzle[i] = i;
-				new_instr->dest.mask[i] = true;
-			}
+			new_instr->sched_instr = ret;
 			
 			new_instr->op = lima_pp_hir_op_mov;
 			

@@ -25,3 +25,4 @@
 #include "ir.h"
 
 void lima_lower_conditions(exec_list* ir);
+void lima_lower_scalar_args(exec_list* ir);
