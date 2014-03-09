@@ -135,9 +135,11 @@ void lima_shader_delete(lima_shader_t* shader)
 {
 	for (unsigned i = 0; i < MESA_SHADER_STAGES; i++)
 		ralloc_free(shader->whole_program->_LinkedShaders[i]);
+	ralloc_free(shader->linked_shader);
 	ralloc_free(shader->mem_ctx);
 	lima_shader_symbols_delete(&shader->symbols);
 	free(shader);
+	_mesa_destroy_shader_compiler();
 }
 
 bool lima_shader_parse(lima_shader_t* shader, const char* source)
@@ -327,6 +329,9 @@ static void compile_pp_shader(lima_shader_t* shader, bool dump_ir)
 	shader->code = ralloc_size(shader->mem_ctx, shader->code_size);
 	memcpy(shader->code, code, shader->code_size);
 	free(code);
+	
+	lima_pp_hir_prog_delete(shader->ir.pp.hir_prog);
+	lima_pp_lir_prog_delete(shader->ir.pp.lir_prog);
 }
 
 bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)

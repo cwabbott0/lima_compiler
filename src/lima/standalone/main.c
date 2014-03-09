@@ -66,7 +66,7 @@ static void usage(void)
 	fprintf(stderr, USAGE);
 }
 
-static const char* read_file(const char* path)
+static char* read_file(const char* path)
 {
 	FILE* fp = fopen(path, "rb");
 	if (!fp) return NULL;
@@ -266,7 +266,7 @@ int main(int argc, char** argv)
 	if (!outfile)
 		outfile = "out.mbs";
 	
-	const char* source = read_file(infile);
+	char* source = read_file(infile);
 	if (!source)
 	{
 		fprintf(stderr, "Error: could not read input file %s\n", infile);
@@ -310,6 +310,7 @@ int main(int argc, char** argv)
 		return 1;
 	
 	mbs_chunk_export(chunk, data);
+	mbs_chunk_delete(chunk);
 	
 	FILE* fp = fopen(outfile, "wb");
 	if (!fp)
@@ -322,6 +323,7 @@ int main(int argc, char** argv)
 	
 	fclose(fp);
 	free(data);
+	free(source);
 	lima_shader_delete(shader);
 	
 	return 0;

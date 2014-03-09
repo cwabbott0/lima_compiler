@@ -1044,7 +1044,7 @@ static void rewrite_regs(lima_pp_lir_prog_t* prog)
 		if (reg->precolored)
 			continue;
 		
-		unsigned swizzle[4];
+		unsigned swizzle[4] = {0, 0, 0, 0};
 		lima_pp_lir_reg_t* alias = get_alias(reg, swizzle);
 		
 		lima_pp_lir_reg_t* allocated_reg;
