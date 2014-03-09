@@ -74,8 +74,8 @@ public:
 	virtual ir_visitor_status visit_enter(ir_dereference_array*);
 	virtual ir_visitor_status visit_enter(ir_dereference_record*);
 	
-	void rewrite_phi_if(ir_phi_if* phi);
-	void rewrite_phi_loop_begin(ir_phi_loop_begin* phi);
+	void rewrite_phi_if(ir_phi_if* phi, ir_if* if_stmt);
+	void rewrite_phi_loop_begin(ir_phi_loop_begin* phi, ir_loop* loop);
 	void rewrite_phi_loop_end(ir_phi_loop_end* phi);
 	
 private:
@@ -133,9 +133,8 @@ public:
 	{
 	}
 	
-	virtual ir_visitor_status visit(ir_phi_if*);
-	virtual ir_visitor_status visit(ir_phi_loop_begin*);
-	virtual ir_visitor_status visit(ir_phi_loop_end*);
+	virtual ir_visitor_status visit_leave(ir_if*);
+	virtual ir_visitor_status visit_leave(ir_loop*);
 	
 private:
 	ir_to_pp_hir_visitor* v;
@@ -312,7 +311,7 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_if* ir)
 	else
 	{
 		old_block->next[1] = new_block;
-		_mesa_hash_table_insert(this->then_branch_to_block,
+		_mesa_hash_table_insert(this->else_branch_to_block,
 								_mesa_hash_pointer(ir), ir, old_block);
 	}
 	
@@ -410,6 +409,8 @@ ir_visitor_status ir_to_pp_hir_visitor::visit(ir_phi_if* ir)
 	lima_pp_hir_cmd_t* phi = lima_pp_hir_phi_create(2);
 	phi->dst.reg.size = ir->dest->type->vector_elements - 1;
 	phi->dst.reg.index = this->prog->reg_alloc++;
+	_mesa_hash_table_insert(this->var_to_cmd, _mesa_hash_pointer(ir->dest),
+							ir->dest, phi);
 	_mesa_hash_table_insert(this->phi_to_phi,
 							_mesa_hash_pointer(ir), ir, phi);
 	lima_pp_hir_block_insert_end(this->cur_block, phi);
@@ -432,6 +433,8 @@ ir_visitor_status ir_to_pp_hir_visitor::visit(ir_phi_loop_begin* ir)
 	lima_pp_hir_cmd_t* phi = lima_pp_hir_phi_create(num_sources);
 	phi->dst.reg.size = ir->dest->type->vector_elements - 1;
 	phi->dst.reg.index = this->prog->reg_alloc++;
+	_mesa_hash_table_insert(this->var_to_cmd, _mesa_hash_pointer(ir->dest),
+							ir->dest, phi);
 	_mesa_hash_table_insert(this->phi_to_phi,
 							_mesa_hash_pointer(ir), ir, phi);
 	lima_pp_hir_block_insert_end(this->cur_block, phi);
@@ -445,6 +448,8 @@ ir_visitor_status ir_to_pp_hir_visitor::visit(ir_phi_loop_end* ir)
 	lima_pp_hir_cmd_t* phi = lima_pp_hir_phi_create(num_sources);
 	phi->dst.reg.size = ir->dest->type->vector_elements - 1;
 	phi->dst.reg.index = prog->reg_alloc++;
+	_mesa_hash_table_insert(this->var_to_cmd, _mesa_hash_pointer(ir->dest),
+							ir->dest, phi);
 	_mesa_hash_table_insert(this->phi_to_phi,
 							_mesa_hash_pointer(ir), ir, phi);
 	lima_pp_hir_block_insert_end(this->cur_block, phi);
@@ -468,13 +473,19 @@ void ir_to_pp_hir_visitor::rewrite_phi_source(lima_pp_hir_cmd_t* phi,
 											  ir_variable* source)
 {
 	unsigned index = get_phi_source_index(phi->block, block);
-	struct hash_entry* entry =
-		_mesa_hash_table_search(this->var_to_cmd, _mesa_hash_pointer(source),
-								source);
+	lima_pp_hir_cmd_t* phi_src;
+	if (source)
+	{
+		struct hash_entry* entry =
+			_mesa_hash_table_search(this->var_to_cmd, _mesa_hash_pointer(source),
+									source);
+		phi_src = (lima_pp_hir_cmd_t*) entry->data;
+		ptrset_add(&phi_src->cmd_uses, phi);
+	}
+	else
+		phi_src = NULL;
 	
-	lima_pp_hir_cmd_t* phi_src = (lima_pp_hir_cmd_t*) entry->data;
 	phi->src[index].depend = phi_src;
-	ptrset_add(&phi_src->cmd_uses, phi);
 }
 
 void ir_to_pp_hir_visitor::rewrite_phi_jump_srcs(lima_pp_hir_cmd_t* phi,
@@ -492,36 +503,37 @@ void ir_to_pp_hir_visitor::rewrite_phi_jump_srcs(lima_pp_hir_cmd_t* phi,
 	}
 }
 
-void ir_to_pp_hir_visitor::rewrite_phi_if(ir_phi_if* ir)
+void ir_to_pp_hir_visitor::rewrite_phi_if(ir_phi_if* ir, ir_if* if_stmt)
 {
 	struct hash_entry* entry =
 		_mesa_hash_table_search(this->phi_to_phi, _mesa_hash_pointer(ir), ir);
 	lima_pp_hir_cmd_t* phi = (lima_pp_hir_cmd_t*) entry->data;
 	
 	entry = _mesa_hash_table_search(this->then_branch_to_block,
-									_mesa_hash_pointer(ir), ir);
+									_mesa_hash_pointer(if_stmt), if_stmt);
 	lima_pp_hir_block_t* then_block = (lima_pp_hir_block_t*) entry->data;
 	this->rewrite_phi_source(phi, then_block, ir->if_src);
 	
 	entry = _mesa_hash_table_search(this->else_branch_to_block,
-									_mesa_hash_pointer(ir), ir);
+									_mesa_hash_pointer(if_stmt), if_stmt);
 	lima_pp_hir_block_t* else_block = (lima_pp_hir_block_t*) entry->data;
 	this->rewrite_phi_source(phi, else_block, ir->else_src);
 }
 
-void ir_to_pp_hir_visitor::rewrite_phi_loop_begin(ir_phi_loop_begin* ir)
+void ir_to_pp_hir_visitor::rewrite_phi_loop_begin(ir_phi_loop_begin* ir,
+												  ir_loop* loop)
 {
 	struct hash_entry* entry =
 		_mesa_hash_table_search(this->phi_to_phi, _mesa_hash_pointer(ir), ir);
 	lima_pp_hir_cmd_t* phi = (lima_pp_hir_cmd_t*) entry->data;
 	
 	entry = _mesa_hash_table_search(this->loop_beginning_to_block,
-									_mesa_hash_pointer(ir), ir);
+									_mesa_hash_pointer(loop), loop);
 	lima_pp_hir_block_t* enter_block = (lima_pp_hir_block_t*) entry->data;
 	this->rewrite_phi_source(phi, enter_block, ir->enter_src);
 	
 	entry = _mesa_hash_table_search(this->loop_end_to_block,
-									_mesa_hash_pointer(ir), ir);
+									_mesa_hash_pointer(loop), loop);
 	lima_pp_hir_block_t* repeat_block = (lima_pp_hir_block_t*) entry->data;
 	this->rewrite_phi_source(phi, repeat_block, ir->repeat_src);
 	
@@ -537,21 +549,31 @@ void ir_to_pp_hir_visitor::rewrite_phi_loop_end(ir_phi_loop_end* ir)
 	this->rewrite_phi_jump_srcs(phi, &ir->break_srcs);
 }
 
-ir_visitor_status ir_phi_rewrite_visitor::visit(ir_phi_if* ir)
+ir_visitor_status ir_phi_rewrite_visitor::visit_leave(ir_if* ir)
 {
-	v->rewrite_phi_if(ir);
+	foreach_list(node, &ir->phi_nodes)
+	{
+		ir_phi_if* phi = (ir_phi_if*) node;
+		this->v->rewrite_phi_if(phi, ir);
+	}
+	
 	return visit_continue;
 }
 
-ir_visitor_status ir_phi_rewrite_visitor::visit(ir_phi_loop_begin* ir)
+ir_visitor_status ir_phi_rewrite_visitor::visit_leave(ir_loop* ir)
 {
-	v->rewrite_phi_loop_begin(ir);
-	return visit_continue;
-}
-
-ir_visitor_status ir_phi_rewrite_visitor::visit(ir_phi_loop_end* ir)
-{
-	v->rewrite_phi_loop_end(ir);
+	foreach_list(node, &ir->begin_phi_nodes)
+	{
+		ir_phi_loop_begin* phi = (ir_phi_loop_begin*) node;
+		this->v->rewrite_phi_loop_begin(phi, ir);
+	}
+	
+	foreach_list(node, &ir->end_phi_nodes)
+	{
+		ir_phi_loop_end* phi = (ir_phi_loop_end*) node;
+		this->v->rewrite_phi_loop_end(phi);
+	}
+	
 	return visit_continue;
 }
 

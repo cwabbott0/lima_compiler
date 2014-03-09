@@ -512,7 +512,7 @@ bool lima_pp_lir_instr_combine_before(lima_pp_lir_scheduled_instr_t* before,
 	if (before->texld_instr)
 	{
 		if (instr->varying_instr &&
-			!lima_pp_lir_instr_can_swap(before->uniform_instr,
+			!lima_pp_lir_instr_can_swap(before->texld_instr,
 										instr->varying_instr))
 			return false;
 		

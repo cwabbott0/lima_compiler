@@ -5,8 +5,8 @@ CPPFLAGS += -I ../talloc \
 	-I ../mapi \
 	-I ../../include
 
-CXXFLAGS += -Wall -fPIC -DDEBUG -Os -fdata-sections -ffunction-sections
-CFLAGS += -Wall -fPIC -DDEBUG -Os -fdata-sections -ffunction-sections
+CXXFLAGS += -Wall -g -fPIC -DDEBUG -Os -fdata-sections -ffunction-sections
+CFLAGS += -Wall -g -fPIC -DDEBUG -Os -fdata-sections -ffunction-sections
 
 # This list gleaned from the VC project file. Update when needed
 SRC_CXX = ast_array_index.cpp \

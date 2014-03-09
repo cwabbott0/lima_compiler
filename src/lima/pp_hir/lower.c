@@ -609,6 +609,9 @@ static void replace_phi_nodes(lima_pp_lir_prog_t* frag_prog, lima_pp_hir_prog_t*
 			for (i = 0; i < cmd->num_args; i++)
 			{
 				lima_pp_hir_cmd_t* depend = cmd->src[i].depend;
+				if (depend == NULL)
+					continue;
+				
 				unsigned old_index = get_reg_index(frag_prog, 
 												   depend->dst.reg.index);
 				replace_register(frag_prog->regs[old_index], old_index, 

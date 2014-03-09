@@ -60,9 +60,9 @@ static bool dead_code_eliminate(lima_pp_hir_prog_t* prog)
 		if (!block->is_end &&
 			block->branch_cond != lima_pp_hir_branch_cond_always)
 		{
-			if (!block->reg_cond_a.constant)
+			if (!block->reg_cond_a.is_constant)
 				block->reg_cond_a.reg->is_live = true;
-			if (!block->reg_cond_b.constant)
+			if (!block->reg_cond_b.is_constant)
 				block->reg_cond_b.reg->is_live = true;
 		}
 		

@@ -101,6 +101,9 @@ bool lima_pp_hir_convert_to_cssa(lima_pp_hir_prog_t* prog)
 			
 			for (i = 0; i < cmd->num_args; i++)
 			{
+				if (cmd->src[i].depend == NULL)
+					continue;
+				
 				lima_pp_hir_cmd_t* new_cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_mov);
 				if (!new_cmd)
 					return false;

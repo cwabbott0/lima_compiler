@@ -65,16 +65,21 @@ static void source_print(lima_pp_hir_source_t* src)
 		}
 	} else {
 		lima_pp_hir_cmd_t* cmd = src->depend;
-		lima_pp_hir_reg_t* reg = &cmd->dst.reg;
-		reg_print(reg);
-		if (reg->size)
+		if (cmd)
 		{
-			printf(".");
-			const char* c = "xyzw";
-			unsigned i;
-			for (i = 0; i <= reg->size; i++)
-				printf("%c", c[src->swizzle[i]]);
+			lima_pp_hir_reg_t* reg = &cmd->dst.reg;
+			reg_print(reg);
+			if (reg->size)
+			{
+				printf(".");
+				const char* c = "xyzw";
+				unsigned i;
+				for (i = 0; i <= reg->size; i++)
+					printf("%c", c[src->swizzle[i]]);
+			}
 		}
+		else
+			printf("(undefined)");
 	}
 
 	if (src->absolute)
