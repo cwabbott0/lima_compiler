@@ -91,8 +91,7 @@ list_is_empty(struct list *head)
     list_entry((ptr)->next, type, member)
 
 #define __container_of(ptr, sample, member)				\
-    (void *)((char *)(ptr)						\
-	     - ((char *)&(sample)->member - (char *)(sample)))
+    (void *)((char *)(ptr) - (char *) &((typeof(sample))0)->member)
 
 #define list_for_each_entry(pos, head, member)				\
     for (pos = __container_of((head)->next, pos, member);		\
