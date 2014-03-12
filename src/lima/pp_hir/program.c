@@ -104,6 +104,13 @@ bool lima_pp_hir_prog_add_predecessors(lima_pp_hir_prog_t* prog)
 	lima_pp_hir_block_t* block;
 	pp_hir_prog_for_each_block(prog, block)
 	{
+		free(block->preds);
+		block->preds = NULL;
+		block->num_preds = 0;
+	}
+	
+	pp_hir_prog_for_each_block(prog, block)
+	{
 		if (block->is_end)
 			continue;
 		block->next[0]->num_preds++;
