@@ -103,6 +103,8 @@ static bool scalarize_xform(lima_pp_hir_cmd_t* cmd)
 	for (i = 1; i <= combine->dst.reg.size; i++)
 		lima_pp_hir_block_insert(c[i], c[i-1]);
 	lima_pp_hir_block_insert(combine, c[combine->dst.reg.size]);
+	
+	free(c);
 	return true;
 }
 

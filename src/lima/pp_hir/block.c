@@ -37,6 +37,8 @@ lima_pp_hir_block_t* lima_pp_hir_block_create(void)
 
 	block->size = 0;
 	block->prog = NULL;
+	block->preds = NULL;
+	block->num_preds = 0;
 	block->is_end = true;
 	block->discard = false;
 	block->output = NULL;
@@ -75,9 +77,9 @@ void lima_pp_hir_block_delete(lima_pp_hir_block_t* block)
 	{
 		if (block->branch_cond != lima_pp_hir_branch_cond_always)
 		{
-			if (!block->reg_cond_a.is_constant)
+			if (!block->reg_cond_a.is_constant && block->reg_cond_a.reg)
 				ptrset_remove(&block->reg_cond_a.reg->block_uses, block);
-			if (!block->reg_cond_b.is_constant)
+			if (!block->reg_cond_b.is_constant && block->reg_cond_b.reg)
 				ptrset_remove(&block->reg_cond_b.reg->block_uses, block);
 		}
 	}
