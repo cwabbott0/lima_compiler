@@ -933,7 +933,10 @@ static bool peephole_mul_add(lima_pp_lir_scheduled_instr_t* instr,
 				scalar ? lima_pp_lir_pipeline_reg_fmul :
 						  lima_pp_lir_pipeline_reg_vmul;
 			
-			ptrset_remove(&reg->uses, add_instr);
+			if (lima_pp_hir_op[add_instr->op].args < 2 ||
+				add_instr->sources[1].reg != reg)
+				ptrset_remove(&reg->uses, add_instr);
+			
 			if (ptrset_size(reg->uses) == 0)
 			{
 				mul_instr->dest.reg = NULL;
