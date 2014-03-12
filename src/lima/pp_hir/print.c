@@ -35,7 +35,7 @@ static void reg_print(lima_pp_hir_reg_t* reg)
 	printf("%%%u", reg->index);
 }
 
-static void source_print(lima_pp_hir_source_t* src)
+static void source_print(lima_pp_hir_source_t* src, unsigned num_channels)
 {
 	if (src->negate)
 		printf("-");
@@ -69,14 +69,11 @@ static void source_print(lima_pp_hir_source_t* src)
 		{
 			lima_pp_hir_reg_t* reg = &cmd->dst.reg;
 			reg_print(reg);
-			if (reg->size)
-			{
-				printf(".");
-				const char* c = "xyzw";
-				unsigned i;
-				for (i = 0; i <= reg->size; i++)
-					printf("%c", c[src->swizzle[i]]);
-			}
+			printf(".");
+			const char* c = "xyzw";
+			unsigned i;
+			for (i = 0; i < num_channels; i++)
+				printf("%c", c[src->swizzle[i]]);
 		}
 		else
 			printf("(undefined)");
@@ -130,7 +127,7 @@ void lima_pp_hir_cmd_print(lima_pp_hir_cmd_t* cmd, lima_pp_hir_block_t* block,
 			if (lima_pp_hir_op[cmd->op].args == 2)
 			{
 				printf(" + ");
-				source_print(&cmd->src[0]);
+				source_print(&cmd->src[0], lima_pp_hir_arg_size(cmd, 0));
 			}
 			printf(" = ");
 		}
@@ -141,13 +138,13 @@ void lima_pp_hir_cmd_print(lima_pp_hir_cmd_t* cmd, lima_pp_hir_block_t* block,
 	if (lima_pp_hir_op_is_store(cmd->op) &&
 		lima_pp_hir_op[cmd->op].args == 2)
 	{
-		source_print(&cmd->src[1]);
+		source_print(&cmd->src[1], lima_pp_hir_arg_size(cmd, 1));
 	}
 	else
 	{
 		if (cmd->num_args)
 		{
-			source_print(&cmd->src[0]);
+			source_print(&cmd->src[0], lima_pp_hir_arg_size(cmd, 0));
 			if (cmd->op == lima_pp_hir_op_phi)
 			{
 				printf(" : ");
@@ -158,7 +155,7 @@ void lima_pp_hir_cmd_print(lima_pp_hir_cmd_t* cmd, lima_pp_hir_block_t* block,
 			for (i = 1; i < cmd->num_args; i++)
 			{
 				printf(", ");
-				source_print(&cmd->src[i]);
+				source_print(&cmd->src[i], lima_pp_hir_arg_size(cmd, i));
 				if (cmd->op == lima_pp_hir_op_phi)
 				{
 					printf(" : ");
