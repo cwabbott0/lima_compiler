@@ -835,15 +835,13 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_expression* ir)
 			break;
 			
 		case ir_binop_nequal:
+		case ir_binop_logic_xor:
 			cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_ne);
 			cmd->src[0].depend = sources[0];
 			cmd->src[1].depend = sources[1];
 			break;
 			
 		//TODO: ir_binop_all_equal, ir_binop_any_nequal
-			
-		//TODO: ir_binop_logic_and (needs lowering)
-		//TODO: ir_binop_logic_or (needs lowering)
 			
 		case ir_binop_dot:
 			switch (sources[0]->dst.reg.size)
@@ -877,12 +875,14 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_expression* ir)
 			break;
 			
 		case ir_binop_min:
+		case ir_binop_logic_and:
 			cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_min);
 			cmd->src[0].depend = sources[0];
 			cmd->src[1].depend = sources[1];
 			break;
 			
 		case ir_binop_max:
+		case ir_binop_logic_or:
 			cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_max);
 			cmd->src[0].depend = sources[0];
 			cmd->src[1].depend = sources[1];
