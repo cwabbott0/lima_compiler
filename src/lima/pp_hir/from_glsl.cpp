@@ -606,6 +606,8 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_assignment* ir)
 	this->in_assignee = true;
 	ir->lhs->accept(this);
 	
+	this->in_assignee = false;
+	
 	return visit_continue_with_parent;
 }
 
