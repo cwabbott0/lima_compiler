@@ -1483,20 +1483,26 @@ void ir_to_pp_hir_visitor::emit_writemask_store(lima_pp_hir_cmd_t* value,
 	this->emit_load(mode, offset, num_components, indirect_offset);
 	lima_pp_hir_cmd_t* load = this->cur_cmd;
 	
-	lima_pp_hir_cmd_t* combine = lima_pp_hir_combine_create(value->dst.reg.size + 1);
-	combine->dst.reg.size = value->dst.reg.size;
+	lima_pp_hir_cmd_t* combine = lima_pp_hir_combine_create(num_components);
+	combine->dst.reg.size = num_components - 1;
 	combine->dst.reg.index = this->prog->reg_alloc++;
 	
-	for (unsigned i = 0; i <= value->dst.reg.size; i++)
+	unsigned val_component = 0;
+	for (unsigned i = 0; i < num_components; i++)
 	{
 		lima_pp_hir_cmd_t* mov = lima_pp_hir_cmd_create(lima_pp_hir_op_mov);
 		mov->dst.reg.size = 0;
 		mov->dst.reg.index = this->prog->reg_alloc++;
 		if (write_mask & (1 << i))
-			mov->src[0].depend = load;
-		else
+		{
 			mov->src[0].depend = value;
-		mov->src[0].swizzle[0] = i;
+			mov->src[0].swizzle[0] = val_component++;
+		}
+		else
+		{
+			mov->src[0].depend = load;
+			mov->src[0].swizzle[0] = i;
+		}
 		lima_pp_hir_block_insert_end(this->cur_block, mov);
 		combine->src[i].depend = mov;
 	}
@@ -1674,7 +1680,6 @@ void ir_to_pp_hir_visitor::emit_load(ir_variable_mode mode, unsigned offset,
 	if ((mode == ir_var_temporary
 		 || mode == ir_var_auto
 		 || mode == ir_var_uniform)
-		
 		&& num_components == 3)
 	{
 		cmd->dst.reg.size = 3;
