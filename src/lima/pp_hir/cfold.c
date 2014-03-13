@@ -586,6 +586,42 @@ static lima_pp_hir_vec4_t all4_cfold(lima_pp_hir_vec4_t* args)
 	};
 }
 
+static lima_pp_hir_vec4_t all_eq2_cfold(lima_pp_hir_vec4_t* args)
+{
+	lima_pp_hir_vec4_t eq = eq_cfold(args);
+	return all2_cfold(&eq);
+}
+
+static lima_pp_hir_vec4_t all_eq3_cfold(lima_pp_hir_vec4_t* args)
+{
+	lima_pp_hir_vec4_t eq = eq_cfold(args);
+	return all3_cfold(&eq);
+}
+
+static lima_pp_hir_vec4_t all_eq4_cfold(lima_pp_hir_vec4_t* args)
+{
+	lima_pp_hir_vec4_t eq = eq_cfold(args);
+	return all4_cfold(&eq);
+}
+
+static lima_pp_hir_vec4_t any_ne2_cfold(lima_pp_hir_vec4_t* args)
+{
+	lima_pp_hir_vec4_t ne = ne_cfold(args);
+	return any2_cfold(&ne);
+}
+
+static lima_pp_hir_vec4_t any_ne3_cfold(lima_pp_hir_vec4_t* args)
+{
+	lima_pp_hir_vec4_t ne = ne_cfold(args);
+	return any3_cfold(&ne);
+}
+
+static lima_pp_hir_vec4_t any_ne4_cfold(lima_pp_hir_vec4_t* args)
+{
+	lima_pp_hir_vec4_t ne = ne_cfold(args);
+	return any4_cfold(&ne);
+}
+
 static lima_pp_hir_vec4_t not_cfold(lima_pp_hir_vec4_t* args)
 {
 	return (lima_pp_hir_vec4_t){
@@ -669,6 +705,12 @@ lima_pp_hir_vec4_t (*lima_pp_hir_cfold[])(lima_pp_hir_vec4_t* args) =
 	all2_cfold,
 	all3_cfold,
 	all4_cfold,
+	all_eq2_cfold,
+	all_eq3_cfold,
+	all_eq4_cfold,
+	any_ne2_cfold,
+	any_ne3_cfold,
+	any_ne4_cfold,
 	not_cfold,
 	
 	NULL,

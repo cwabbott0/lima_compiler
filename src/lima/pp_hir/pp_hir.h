@@ -178,6 +178,12 @@ typedef enum
 	lima_pp_hir_op_all2,
 	lima_pp_hir_op_all3,
 	lima_pp_hir_op_all4,
+	lima_pp_hir_op_all_eq2,
+	lima_pp_hir_op_all_eq3,
+	lima_pp_hir_op_all_eq4,
+	lima_pp_hir_op_any_ne2,
+	lima_pp_hir_op_any_ne3,
+	lima_pp_hir_op_any_ne4,
 	lima_pp_hir_op_not,
 	
 	lima_pp_hir_op_phi,

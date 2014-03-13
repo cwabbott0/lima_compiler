@@ -724,6 +724,78 @@ const lima_pp_hir_op_t lima_pp_hir_op[] =
 		.input_modifiers = {true, false, false}
 	},
 	{
+		.name = "all_eq2",
+		.args = 2,
+		.commutative = true,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {2, 2, 0},
+		.is_horizantal = true,
+		.dest_size = 0,
+		.output_modifiers = true,
+		.input_modifiers = {true, false, false}
+	},
+	{
+		.name = "all_eq3",
+		.args = 2,
+		.commutative = true,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {3, 3, 0},
+		.is_horizantal = true,
+		.dest_size = 0,
+		.output_modifiers = true,
+		.input_modifiers = {true, false, false}
+	},
+	{
+		.name = "all_eq4",
+		.args = 2,
+		.commutative = true,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {4, 4, 0},
+		.is_horizantal = true,
+		.dest_size = 0,
+		.output_modifiers = true,
+		.input_modifiers = {true, false, false}
+	},
+	{
+		.name = "any_ne2",
+		.args = 2,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {2, 2, 0},
+		.is_horizantal = true,
+		.dest_size = 0,
+		.output_modifiers = true,
+		.input_modifiers = {true, false, false}
+	},
+	{
+		.name = "any_ne3",
+		.args = 2,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {3, 3, 0},
+		.is_horizantal = true,
+		.dest_size = 0,
+		.output_modifiers = true,
+		.input_modifiers = {true, false, false}
+	},
+	{
+		.name = "any_ne4",
+		.args = 2,
+		.commutative = false,
+		.has_dest = true,
+		.dest_beginning = false,
+		.arg_sizes = {4, 4, 0},
+		.is_horizantal = true,
+		.dest_size = 0,
+		.output_modifiers = true,
+		.input_modifiers = {true, false, false}
+	},
+	{
 		.name = "not",
 		.args = 1,
 		.commutative = false,

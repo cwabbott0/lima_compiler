@@ -28,6 +28,7 @@
 #include "pp_hir.h"
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 static bool simple_ub_xform(
 	lima_pp_hir_cmd_t* cmd,
@@ -1083,6 +1084,134 @@ static bool all4_xform(lima_pp_hir_cmd_t* cmd)
 	return all_xform(cmd, 4);
 }
 
+static bool all_eq_xform(lima_pp_hir_cmd_t* cmd, unsigned components)
+{
+	lima_pp_hir_cmd_t* c[2];
+	
+	c[0] = lima_pp_hir_cmd_create(lima_pp_hir_op_eq);
+	
+	switch (components)
+	{
+		case 2:
+			c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_all2);
+			break;
+			
+		case 3:
+			c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_all3);
+			break;
+			
+		case 4:
+			c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_all4);
+			break;
+			
+		default:
+			assert(0);
+	}
+	
+	if (!c[0] || !c[1])
+	{
+		lima_pp_hir_cmd_delete(c[0]);
+		lima_pp_hir_cmd_delete(c[1]);
+		return false;
+	}
+	
+	lima_pp_hir_reg_t ireg =
+		{ { cmd->block->prog->reg_alloc++, cmd->dst.reg.size } };
+	
+	c[0]->dst = lima_pp_hir_dest_default;
+	c[0]->dst.reg = ireg;
+	c[0]->src[0] = lima_pp_hir_source_copy(cmd->src[0]);
+	c[0]->src[1] = lima_pp_hir_source_copy(cmd->src[1]);
+	
+	c[1]->src[0] = lima_pp_hir_source_default;
+	c[1]->src[0].depend = c[0];
+	c[1]->dst = cmd->dst;
+	
+	lima_pp_hir_cmd_replace_uses(cmd, c[1]);
+	lima_pp_hir_block_replace(cmd, c[0]);
+	lima_pp_hir_block_insert(c[1], c[0]);
+	return true;
+}
+
+static bool all_eq2_xform(lima_pp_hir_cmd_t* cmd)
+{
+	return all_eq_xform(cmd, 2);
+}
+
+static bool all_eq3_xform(lima_pp_hir_cmd_t* cmd)
+{
+	return all_eq_xform(cmd, 3);
+}
+
+static bool all_eq4_xform(lima_pp_hir_cmd_t* cmd)
+{
+	return all_eq_xform(cmd, 4);
+}
+
+static bool any_ne_xform(lima_pp_hir_cmd_t* cmd, unsigned components)
+{
+	lima_pp_hir_cmd_t* c[2];
+	
+	c[0] = lima_pp_hir_cmd_create(lima_pp_hir_op_ne);
+	
+	switch (components)
+	{
+		case 2:
+			c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_any2);
+			break;
+			
+		case 3:
+			c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_any3);
+			break;
+			
+		case 4:
+			c[1] = lima_pp_hir_cmd_create(lima_pp_hir_op_any4);
+			break;
+			
+		default:
+			assert(0);
+	}
+	
+	if (!c[0] || !c[1])
+	{
+		lima_pp_hir_cmd_delete(c[0]);
+		lima_pp_hir_cmd_delete(c[1]);
+		return false;
+	}
+	
+	lima_pp_hir_reg_t ireg =
+	{ { cmd->block->prog->reg_alloc++, cmd->dst.reg.size } };
+	
+	c[0]->dst = lima_pp_hir_dest_default;
+	c[0]->dst.reg = ireg;
+	c[0]->src[0] = lima_pp_hir_source_copy(cmd->src[0]);
+	c[0]->src[1] = lima_pp_hir_source_copy(cmd->src[1]);
+	
+	c[1]->src[0] = lima_pp_hir_source_default;
+	c[1]->src[0].depend = c[0];
+	c[1]->dst = cmd->dst;
+	
+	lima_pp_hir_cmd_replace_uses(cmd, c[1]);
+	lima_pp_hir_block_replace(cmd, c[0]);
+	lima_pp_hir_block_insert(c[1], c[0]);
+	return true;
+}
+
+static bool any_ne2_xform(lima_pp_hir_cmd_t* cmd)
+{
+	return any_ne_xform(cmd, 2);
+}
+
+static bool any_ne3_xform(lima_pp_hir_cmd_t* cmd)
+{
+	return any_ne_xform(cmd, 3);
+}
+
+static bool any_ne4_xform(lima_pp_hir_cmd_t* cmd)
+{
+	return any_ne_xform(cmd, 4);
+}
+
 bool (*lima_pp_hir_xform[])(lima_pp_hir_cmd_t* cmd) =
 {
 	NULL,
@@ -1155,6 +1284,12 @@ bool (*lima_pp_hir_xform[])(lima_pp_hir_cmd_t* cmd) =
 	all2_xform,
 	all3_xform,
 	all4_xform,
+	all_eq2_xform,
+	all_eq3_xform,
+	all_eq4_xform,
+	any_ne2_xform,
+	any_ne3_xform,
+	any_ne4_xform,
 	NULL,
 	
 	NULL,

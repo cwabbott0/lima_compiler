@@ -841,7 +841,69 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_expression* ir)
 			cmd->src[1].depend = sources[1];
 			break;
 			
-		//TODO: ir_binop_all_equal, ir_binop_any_nequal
+		case ir_binop_all_equal:
+			switch (sources[0]->dst.reg.size)
+			{
+				case 0:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_eq);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				case 1:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_all_eq2);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				case 2:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_all_eq3);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				case 3:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_all_eq4);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				default:
+					assert(0);
+			}
+			break;
+			
+		case ir_binop_any_nequal:
+			switch (sources[0]->dst.reg.size)
+			{
+				case 0:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_ne);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				case 1:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_any_ne2);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				case 2:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_any_ne3);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				case 3:
+					cmd = lima_pp_hir_cmd_create(lima_pp_hir_op_any_ne4);
+					cmd->src[0].depend = sources[0];
+					cmd->src[1].depend = sources[1];
+					break;
+					
+				default:
+					assert(0);
+			}
+			break;
 			
 		case ir_binop_dot:
 			switch (sources[0]->dst.reg.size)
