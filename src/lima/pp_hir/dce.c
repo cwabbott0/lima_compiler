@@ -91,7 +91,7 @@ static bool dead_code_eliminate(lima_pp_hir_prog_t* prog)
 				continue;
 			
 			lima_pp_hir_cmd_t* dep = cmd->src[i].depend;
-			if (!dep->is_live)
+			if (dep && !dep->is_live)
 			{
 				dep->is_live = true;
 				fixed_queue_push(&work_queue, dep);

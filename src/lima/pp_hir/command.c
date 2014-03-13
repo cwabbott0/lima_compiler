@@ -86,9 +86,6 @@ lima_pp_hir_cmd_t* lima_pp_hir_cmd_create(lima_pp_hir_op_e op)
 
 lima_pp_hir_cmd_t* lima_pp_hir_phi_create(unsigned num_args)
 {
-	if (num_args < 2)
-		return NULL;
-	
 	lima_pp_hir_cmd_t* cmd = create_cmd(num_args);
 	if (!cmd)
 		return NULL;
@@ -116,7 +113,7 @@ void lima_pp_hir_cmd_delete(lima_pp_hir_cmd_t* cmd)
 		return;
 
 	unsigned i;
-	for (i = 0; i < lima_pp_hir_op[cmd->op].args; i++)
+	for (i = 0; i < cmd->num_args; i++)
 	{
 		if (cmd->src[i].constant)
 			free(cmd->src[i].depend);
