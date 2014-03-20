@@ -325,8 +325,6 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_if* ir)
 
 ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_loop* ir)
 {
-	visit_list_elements(this, &ir->begin_phi_nodes, false);
-	
 	_mesa_hash_table_insert(this->loop_beginning_to_block,
 							_mesa_hash_pointer(ir), ir, this->cur_block);
 	
@@ -345,6 +343,7 @@ ir_visitor_status ir_to_pp_hir_visitor::visit_enter(ir_loop* ir)
 	lima_pp_hir_prog_insert_end(loop_header, this->prog);
 	this->cur_block = loop_header;
 	
+	visit_list_elements(this, &ir->begin_phi_nodes, false);
 	visit_list_elements(this, &ir->body_instructions);
 	
 	_mesa_hash_table_insert(this->loop_end_to_block,
