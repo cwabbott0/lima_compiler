@@ -1122,6 +1122,8 @@ static bool peephole_block(lima_pp_lir_block_t* block)
 			if (!peephole_discard_move(instr, &progress))
 				return false;
 			
+			lima_pp_lir_calc_min_dep_info(block);
+			
 			if (progress)
 				break;
 		}
@@ -1136,12 +1138,12 @@ static bool peephole_block(lima_pp_lir_block_t* block)
 			if (!peephole_mul_add(instr, &progress))
 				return false;
 			
+			lima_pp_lir_calc_min_dep_info(block);
+			
 			if (progress)
 				break;
 		}
 	}
-	
-	lima_pp_lir_calc_min_dep_info(block);
 	
 	lima_pp_lir_scheduled_instr_t* tmp;
 	pp_lir_block_for_each_instr_safe(block, tmp, instr)
@@ -1161,12 +1163,12 @@ static bool peephole_block(lima_pp_lir_block_t* block)
 			if (!peephole_varying(instr, &progress))
 				return false;
 			
+			lima_pp_lir_calc_min_dep_info(block);
+			
 			if (progress)
 				break;
 		}
 	}
-	
-	lima_pp_lir_calc_min_dep_info(block);
 	
 	pp_lir_block_for_each_instr(block, instr)
 	{
