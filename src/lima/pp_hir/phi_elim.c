@@ -110,7 +110,7 @@ bool lima_pp_hir_convert_to_cssa(lima_pp_hir_prog_t* prog)
 				lima_pp_hir_cmd_t* old_cmd = cmd->src[i].depend;
 				new_cmd->dst = lima_pp_hir_dest_default;
 				new_cmd->dst.reg.index = prog->reg_alloc++;
-				new_cmd->dst.reg.size = old_cmd->dst.reg.size;
+				new_cmd->dst.reg.size = cmd->dst.reg.size;
 				new_cmd->src[0] = lima_pp_hir_source_default;
 				new_cmd->src[0].depend = old_cmd;
 				lima_pp_hir_block_insert_end(block->preds[i], new_cmd);
