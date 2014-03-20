@@ -221,6 +221,25 @@ lima_pp_lir_scheduled_instr_t* lima_pp_lir_instr_to_sched_instr(
 			}
 			break;
 		}
+		
+		case lima_pp_hir_op_not:
+		{
+			if (is_scalar(instr))
+			{
+				ret->alu_instrs[lima_pp_lir_alu_scalar_mul] = instr;
+				ret->possible_alu_instr_pos[lima_pp_lir_alu_scalar_mul][lima_pp_lir_alu_vector_mul]
+					= true;
+				ret->possible_alu_instr_pos[lima_pp_lir_alu_scalar_mul][lima_pp_lir_alu_scalar_mul]
+					= true;
+			}
+			else
+			{
+				ret->alu_instrs[lima_pp_lir_alu_vector_mul] = instr;
+				ret->possible_alu_instr_pos[lima_pp_lir_alu_vector_mul][lima_pp_lir_alu_vector_mul]
+					= true;
+			}
+			break;
+		}
 			
 		case lima_pp_hir_op_gt:
 		case lima_pp_hir_op_ge:
