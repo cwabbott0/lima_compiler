@@ -500,6 +500,7 @@ bool lima_pp_hir_prog_reorder(lima_pp_hir_prog_t* prog);
 bool lima_pp_hir_prog_add_array(
 	lima_pp_hir_prog_t* prog, lima_pp_hir_temp_array_t array);
 bool lima_pp_hir_prog_remove_array(lima_pp_hir_prog_t* prog, unsigned index);
+void lima_pp_hir_prog_validate(lima_pp_hir_prog_t* prog);
 
 lima_pp_hir_block_t* lima_pp_hir_block_create(void);
 void lima_pp_hir_block_delete(lima_pp_hir_block_t* block);

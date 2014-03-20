@@ -262,6 +262,8 @@ static void compile_pp_shader(lima_shader_t* shader, bool dump_ir)
 		lima_pp_hir_prog_print(shader->ir.pp.hir_prog);
 	}
 	
+	lima_pp_hir_prog_validate(shader->ir.pp.hir_prog);
+	
 	lima_pp_hir_dead_code_eliminate(shader->ir.pp.hir_prog);
 	
 	lima_pp_hir_prog_print(shader->ir.pp.hir_prog);
