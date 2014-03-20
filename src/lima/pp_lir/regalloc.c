@@ -1339,7 +1339,7 @@ static bool spill_sched_instr(lima_pp_lir_scheduled_instr_t* instr,
 			}
 			
 			mov_instr->dest.modifier = lima_pp_outmod_none;
-			mov_instr->dest.reg = reg;
+			mov_instr->dest.reg = new_reg;
 			
 			ptrset_add(&new_reg->defs, mov_instr);
 			
@@ -1441,7 +1441,12 @@ static bool spill_reg(lima_pp_lir_reg_t* reg, lima_pp_lir_prog_t* prog)
 		}
 	}
 	
+	assert(ptrset_size(reg->defs) == 0);
+	assert(ptrset_size(reg->uses) == 0);
+	
 	delete_reg(reg, prog);
+	
+	ptrset_delete(sched_defs_uses);
 	
 	return true;
 }
@@ -1528,6 +1533,7 @@ bool lima_pp_lir_regalloc(lima_pp_lir_prog_t* prog)
 		lima_pp_lir_reg_t* reg;
 		ptrset_iter_for_each(iter, reg)
 		{
+			printf("Spilling register %%%u\n", reg->index);
 			if (!spill_reg(reg, prog))
 			{
 				delete_state(&state);
