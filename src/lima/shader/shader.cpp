@@ -345,6 +345,8 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 	
 	lima_lower_scalar_args(shader->linked_shader->ir);
 	
+	lima_lower_frag_color_writemask(shader->linked_shader->ir);
+	
 	_mesa_print_ir(shader->linked_shader->ir, shader->state);
 	
 	lima_convert_symbols(shader);
