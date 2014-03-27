@@ -290,6 +290,8 @@ mbs_chunk_t* lima_export_uniform_table(lima_shader_symbols_t* symbols)
 	}
 	
 	uint32_t size = symbols->uniform_table.total_size;
+	//for some reason, the blob aligns uniform size to 4, so do that here too
+	size = (size + 3) & ~3;
 	if (!mbs_chunk_append_data(uniform_table, &size, 4))
 	{
 		mbs_chunk_delete(uniform_table);
