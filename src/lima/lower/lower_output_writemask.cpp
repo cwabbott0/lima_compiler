@@ -33,12 +33,13 @@ namespace {
 class ir_lower_writemask_visitor : public ir_hierarchical_visitor
 {
 public:
-	ir_lower_writemask_visitor()
+	ir_lower_writemask_visitor(const char* output_name)
 	{
 		this->partial_write = true;
 		for (unsigned i = 0; i < 4; i++)
 			this->components[i] = NULL;
-		this->frag_color = NULL;
+		this->output = NULL;
+		this->output_name = output_name;
 	}
 	
 	virtual ir_visitor_status visit_enter(ir_assignment*);
@@ -47,19 +48,20 @@ public:
 	virtual ir_visitor_status visit(ir_variable*);
 	
 private:
-	//whether the most recent write to gl_FragColor was partial
+	//whether the most recent write to gl_FragColor/gl_Position was partial
 	//(i.e. not all 4 components)
 	bool partial_write;
 	ir_rvalue* components[4];
-	ir_variable* frag_color;
+	ir_variable* output;
+	const char* output_name;
 	void handle_return(ir_instruction* insert_after);
 };
 	
 }; /* private namespace */
 
-void lima_lower_frag_color_writemask(exec_list* ir)
+void lima_lower_output_writemask(exec_list* ir, bool is_fragment)
 {
-	ir_lower_writemask_visitor v;
+	ir_lower_writemask_visitor v(is_fragment ? "gl_FragColor" : "gl_Position");
 	v.run(ir);
 }
 
@@ -72,7 +74,7 @@ ir_visitor_status ir_lower_writemask_visitor::visit_enter(ir_assignment* ir)
 	
 	ir_variable* var = deref_var->var;
 	
-	if (strcmp(var->name, "gl_FragColor") != 0)
+	if (strcmp(var->name, this->output_name) != 0)
 		return visit_continue;
 	
 	if (ir->write_mask != 0xF)
@@ -122,8 +124,8 @@ ir_visitor_status ir_lower_writemask_visitor::visit_leave(ir_function_signature*
 
 ir_visitor_status ir_lower_writemask_visitor::visit(ir_variable* var)
 {
-	if (strcmp(var->name, "gl_FragColor") == 0)
-		this->frag_color = var;
+	if (strcmp(var->name, this->output_name) == 0)
+		this->output = var;
 	
 	return visit_continue;
 }
@@ -145,17 +147,17 @@ void ir_lower_writemask_visitor::handle_return(ir_instruction* insert_after)
 			args[i] = new(mem_ctx) ir_constant(0.0f);
 	}
 	
-	if (!this->frag_color)
+	if (!this->output)
 	{
-		this->frag_color = new(mem_ctx) ir_variable(glsl_type::vec(4),
-													"gl_FragColor",
-													ir_var_shader_out);
+		this->output = new(mem_ctx) ir_variable(glsl_type::vec(4),
+												this->output_name,
+												ir_var_shader_out);
 	}
 	
 	ir_expression* ir = new(mem_ctx) ir_expression(ir_quadop_vector,
-												   this->frag_color->type,
+												   this->output->type,
 												   args[0], args[1], args[2],
 												   args[3]);
 	
-	insert_after->insert_after(assign(this->frag_color, ir));
+	insert_after->insert_after(assign(this->output, ir));
 }

@@ -26,4 +26,4 @@
 
 void lima_lower_conditions(exec_list* ir);
 void lima_lower_scalar_args(exec_list* ir);
-void lima_lower_frag_color_writemask(exec_list* ir);
+void lima_lower_output_writemask(exec_list* ir, bool is_fragment);
