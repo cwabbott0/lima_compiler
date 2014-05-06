@@ -73,5 +73,6 @@ struct lima_shader_s
 
 void lima_convert_symbols(lima_shader_t* shader);
 void lima_lower_to_pp_hir(lima_shader_t* shader);
+void lima_lower_to_gp_ir(lima_shader_t* shader);
 
 extern "C" void fill_fs_info(lima_pp_hir_prog_t* prog, lima_shader_info_t* info);

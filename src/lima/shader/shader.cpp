@@ -26,6 +26,7 @@
 #include "pp_hir/phi_elim.h"
 #include "pp_hir/xform.h"
 #include "pp_hir/cfold.h"
+#include "gp_ir/scheduler.h"
 #include "ir.h"
 #include "ast.h"
 #include "glsl_parser.h"
@@ -336,6 +337,56 @@ static void compile_pp_shader(lima_shader_t* shader, bool dump_ir)
 	lima_pp_lir_prog_delete(shader->ir.pp.lir_prog);
 }
 
+/* driver for the GP backend */
+
+static void compile_gp_shader(lima_shader_t* shader, bool dump_ir)
+{
+	if (dump_ir)
+	{
+		printf("GP IR (before optimization and lowering):\n\n");
+		lima_gp_ir_prog_print(shader->ir.gp.gp_prog, 0, false);
+	}
+	
+	lima_gp_ir_const_fold_prog(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_if_convert(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_dead_code_eliminate(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_reg_eliminate(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_eliminate_phi_nodes(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_liveness_compute_prog(shader->ir.gp.gp_prog, true);
+	
+	lima_gp_ir_regalloc(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_lower_prog(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_prog_calc_dependencies(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_prog_calc_crit_path(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_schedule_prog(shader->ir.gp.gp_prog);
+	
+	if (dump_ir)
+	{
+		printf("GP IR (after optimization and lowering):\n\n");
+		lima_gp_ir_prog_print(shader->ir.gp.gp_prog, 0, false);
+	}
+	
+	unsigned size;
+	void* code = lima_gp_ir_codegen(shader->ir.gp.gp_prog, &size,
+									&shader->info.vs.attrib_prefetch);
+	shader->info.vs.num_instructions = size / 16;
+	
+	shader->code = ralloc_size(shader->mem_ctx, shader->code_size);
+	memcpy(shader->code, code, shader->code_size);
+	free(code);
+	
+	lima_gp_ir_prog_delete(shader->ir.gp.gp_prog);
+}
+
 bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 {
 	if (!shader->parsed)
@@ -347,7 +398,8 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 	
 	lima_lower_scalar_args(shader->linked_shader->ir);
 	
-	lima_lower_frag_color_writemask(shader->linked_shader->ir);
+	lima_lower_output_writemask(shader->linked_shader->ir,
+								shader->stage == lima_shader_stage_fragment);
 	
 	_mesa_print_ir(shader->linked_shader->ir, shader->state);
 	
@@ -370,11 +422,8 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 	}
 	else
 	{
-		//TODO
-		
-		//XXX fill me in
-		shader->info.vs.num_instructions = 0;
-		shader->info.vs.attrib_prefetch = 0;
+		lima_lower_to_gp_ir(shader);
+		compile_gp_shader(shader, dump_ir);
 	}
 	
 	//TODO

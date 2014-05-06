@@ -27,6 +27,10 @@
 
 #include "gp_ir.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /*
  * structure for storing information about a given dependency
@@ -167,5 +171,9 @@ bool lima_gp_ir_regalloc_scalar_fast(lima_gp_ir_reg_t* reg, bitset_t free_regs);
 bool lima_gp_ir_regalloc_scalar_slow(lima_gp_ir_reg_t* reg); //TODO
 bool lima_gp_ir_liveness_compute_node(lima_gp_ir_root_node_t* node,
 									  bitset_t live_before, bool virt);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
