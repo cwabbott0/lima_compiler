@@ -114,6 +114,11 @@ typedef enum
 	lima_gp_ir_op_const,
 	
 	/* emulated ops */
+	lima_gp_ir_op_abs,
+	lima_gp_ir_op_not,
+	lima_gp_ir_op_div,
+	lima_gp_ir_op_mod,
+	lima_gp_ir_op_lrp,
 	lima_gp_ir_op_exp2,
 	lima_gp_ir_op_log2,
 	lima_gp_ir_op_rcp,
@@ -127,6 +132,10 @@ typedef enum
 	lima_gp_ir_op_sin,
 	lima_gp_ir_op_cos,
 	lima_gp_ir_op_tan,
+	lima_gp_ir_op_eq,
+	lima_gp_ir_op_ne,
+	lima_gp_ir_op_f2b,
+	lima_gp_ir_op_f2i,
 	lima_gp_ir_op_branch_uncond,
 	
 	/* phi nodes (ssa-only) */

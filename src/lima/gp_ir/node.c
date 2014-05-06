@@ -286,6 +286,46 @@ const lima_gp_ir_op_t lima_gp_ir_op[] = {
 		.type = lima_gp_ir_node_type_const
 	},
 	{
+		.name = "abs",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {false, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu,
+	},
+	{
+		.name = "not",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {false, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu,
+	},
+	{
+		.name = "div",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {false, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu,
+	},
+	{
+		.name = "mod",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {false, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu,
+	},
+	{
+		.name = "lrp",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {false, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu,
+	},
+	{
 		.name = "exp2",
 		.num_sched_positions = 0,
 		.can_negate_dest = false,
@@ -383,6 +423,38 @@ const lima_gp_ir_op_t lima_gp_ir_op[] = {
 	},
 	{
 		.name = "tan",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {true, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu
+	},
+	{
+		.name = "eq",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {true, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu
+	},
+	{
+		.name = "ne",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {true, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu
+	},
+	{
+		.name = "f2b",
+		.num_sched_positions = 0,
+		.can_negate_dest = false,
+		.can_negate_sources = {true, false, false},
+		.is_root_node = false,
+		.type = lima_gp_ir_node_type_alu
+	},
+	{
+		.name = "f2i",
 		.num_sched_positions = 0,
 		.can_negate_dest = false,
 		.can_negate_sources = {true, false, false},
@@ -832,6 +904,8 @@ unsigned lima_gp_ir_alu_node_num_children(lima_gp_ir_op_e op)
 		case lima_gp_ir_op_log2_impl:
 		case lima_gp_ir_op_rcp_impl:
 		case lima_gp_ir_op_rsqrt_impl:
+		case lima_gp_ir_op_abs:
+		case lima_gp_ir_op_not:
 		case lima_gp_ir_op_exp2:
 		case lima_gp_ir_op_log2:
 		case lima_gp_ir_op_complex2:
@@ -845,18 +919,25 @@ unsigned lima_gp_ir_alu_node_num_children(lima_gp_ir_op_e op)
 		case lima_gp_ir_op_sin:
 		case lima_gp_ir_op_cos:
 		case lima_gp_ir_op_tan:
+		case lima_gp_ir_op_f2b:
+		case lima_gp_ir_op_f2i:
 			return 1;
 			
 		case lima_gp_ir_op_add:
 		case lima_gp_ir_op_mul:
 		case lima_gp_ir_op_ge:
 		case lima_gp_ir_op_lt:
+		case lima_gp_ir_op_eq:
+		case lima_gp_ir_op_ne:
 		case lima_gp_ir_op_min:
 		case lima_gp_ir_op_max:
+		case lima_gp_ir_op_div:
+		case lima_gp_ir_op_mod:
 		case lima_gp_ir_op_pow:
 			return 2;
 			
 		case lima_gp_ir_op_select:
+		case lima_gp_ir_op_lrp:
 		case lima_gp_ir_op_complex1:
 			return 3;
 			
@@ -1350,6 +1431,9 @@ lima_gp_ir_load_node_t* lima_gp_ir_load_node_create(lima_gp_ir_op_e op)
 	load_node->node.import = load_node_import;
 	load_node->node.print = load_node_print;
 	load_node->node.delete_ = load_node_delete;
+	
+	load_node->index = 0;
+	load_node->offset = false;
 	
 	return load_node;
 }
