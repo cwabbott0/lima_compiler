@@ -185,6 +185,7 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 {
 	if (ir->data.mode != ir_var_shader_in &&
 		ir->data.mode != ir_var_shader_out &&
+		ir->data.mode != ir_var_system_value &&
 		ir->data.mode != ir_var_uniform &&
 		ir->data.mode != ir_var_temporary &&
 		ir->data.mode != ir_var_auto)
@@ -193,6 +194,20 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 	if (this->stage == lima_shader_stage_fragment &&
 		ir->data.mode == ir_var_shader_out)
 		return visit_continue;
+	
+	if (this->unused && (ir->data.mode != ir_var_shader_out ||
+		lima_symbol_table_find(&this->symbols->varying_table, ir->name)))
+		return visit_continue;
+	
+	if (strcmp(ir->name, "gl_Position") == 0)
+	{
+		lima_symbol_t* transform = lima_symbol_create(lima_symbol_vec4,
+													  lima_precision_high,
+													  "gl_mali_ViewportTransform",
+													  2);
+		
+		lima_shader_symbols_add_uniform(this->symbols, transform);
+	}
 	
 	if (strcmp(ir->name, "gl_FrontFacing") == 0)
 		return visit_continue;
@@ -224,10 +239,6 @@ ir_visitor_status symbol_convert_visitor::visit(ir_variable* ir)
 		
 		return visit_continue;
 	}
-	
-	if (this->unused && (ir->data.mode != ir_var_shader_out ||
-		lima_symbol_table_find(&this->symbols->varying_table, ir->name)))
-		return visit_continue;
 	
 	lima_symbol_t* symbol = convert_symbol(ir->type, ir->name, 0);
 	symbol->used = !this->unused;
