@@ -27,13 +27,216 @@
 
 typedef lima_gp_ir_node_t* (*lower_cb)(lima_gp_ir_node_t* orig);
 
+//abs(x) = max(x, -x)
+static lima_gp_ir_node_t* lower_abs(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* node =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_max);
+	
+	if (!node)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	node->children[0] = node->children[1] = orig_alu->children[0];
+	node->children_negate[1] = true;
+	lima_gp_ir_node_link(&node->node, node->children[0]);
+	
+	return &node->node;
+}
+
+//not(x) = 1.0 - x
+static lima_gp_ir_node_t* lower_not(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* node =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_max);
+	
+	if (!node)
+		return NULL;
+	
+	lima_gp_ir_const_node_t* const_one = lima_gp_ir_const_node_create();
+	
+	if (!const_one)
+	{
+		lima_gp_ir_node_delete(&node->node);
+		return NULL;
+	}
+	
+	const_one->constant = 1.0f;
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	node->children[0] = &const_one->node;
+	node->children[1] = orig_alu->children[0];
+	node->children_negate[1] = true;
+	lima_gp_ir_node_link(&node->node, &const_one->node);
+	lima_gp_ir_node_link(&node->node, orig_alu->children[0]);
+	
+	return &node->node;
+}
+
+//x / y = x * (1 / y)
+static lima_gp_ir_node_t* lower_div(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* mul =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_mul);
+	
+	if (!mul)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* rcp =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_rcp);
+	
+	if (!rcp)
+	{
+		lima_gp_ir_node_delete(&mul->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	rcp->children[0] = orig_alu->children[1];
+	lima_gp_ir_node_link(&rcp->node, orig_alu->children[1]);
+	
+	mul->children[0] = orig_alu->children[0];
+	mul->children[1] = &rcp->node;
+	lima_gp_ir_node_link(&mul->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&mul->node, &rcp->node);
+	
+	return &mul->node;
+}
+
+//mod(x, y) = y * fract(x/y)
+static lima_gp_ir_node_t* lower_mod(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* div =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_div);
+	
+	if (!div)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* fract =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_fract);
+	
+	if (!fract)
+	{
+		lima_gp_ir_node_delete(&div->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* mul =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_mul);
+	
+	if (!mul)
+	{
+		lima_gp_ir_node_delete(&div->node);
+		lima_gp_ir_node_delete(&fract->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	div->children[0] = orig_alu->children[0];
+	div->children[1] = orig_alu->children[1];
+	lima_gp_ir_node_link(&div->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&div->node, orig_alu->children[1]);
+	
+	fract->children[0] = &div->node;
+	lima_gp_ir_node_link(&fract->node, &div->node);
+	
+	mul->children[0] = &fract->node;
+	mul->children[1] = orig_alu->children[1];
+	lima_gp_ir_node_link(&mul->node, &fract->node);
+	lima_gp_ir_node_link(&mul->node, orig_alu->children[1]);
+	
+	return &mul->node;
+}
+
+//lrp(x, y, t) = y * t + x * (1 - t)
+static lima_gp_ir_node_t* lower_lrp(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* mul1 =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_mul);
+	
+	if (!mul1)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* mul2 =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_mul);
+	
+	if (!mul2)
+	{
+		lima_gp_ir_node_delete(&mul1->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_const_node_t* one = lima_gp_ir_const_node_create();
+	
+	if (!one)
+	{
+		lima_gp_ir_node_delete(&mul1->node);
+		lima_gp_ir_node_delete(&mul2->node);
+		return NULL;
+	}
+	
+	one->constant = 1.0f;
+	
+	lima_gp_ir_alu_node_t* sub =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_add);
+	
+	if (!sub)
+	{
+		lima_gp_ir_node_delete(&mul1->node);
+		lima_gp_ir_node_delete(&mul2->node);
+		lima_gp_ir_node_delete(&one->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* add =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_add);
+	
+	if (!add)
+	{
+		lima_gp_ir_node_delete(&mul1->node);
+		lima_gp_ir_node_delete(&mul2->node);
+		lima_gp_ir_node_delete(&one->node);
+		lima_gp_ir_node_delete(&sub->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	mul1->children[0] = orig_alu->children[1];
+	mul1->children[1] = orig_alu->children[2];
+	lima_gp_ir_node_link(&mul1->node, orig_alu->children[1]);
+	lima_gp_ir_node_link(&mul1->node, orig_alu->children[2]);
+	
+	sub->children[0] = &one->node;
+	sub->children[1] = orig_alu->children[2];
+	sub->children_negate[1] = true;
+	lima_gp_ir_node_link(&sub->node, &one->node);
+	lima_gp_ir_node_link(&sub->node, orig_alu->children[2]);
+	
+	mul2->children[0] = orig_alu->children[0];
+	mul2->children[1] = &sub->node;
+	lima_gp_ir_node_link(&mul2->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&mul2->node, &sub->node);
+	
+	add->children[0] = &mul1->node;
+	add->children[1] = &mul2->node;
+	lima_gp_ir_node_link(&add->node, &mul1->node);
+	lima_gp_ir_node_link(&add->node, &mul2->node);
+	
+	return &add->node;
+}
+
 static lima_gp_ir_node_t* lower_complex(lima_gp_ir_node_t* child,
 										lima_gp_ir_op_e impl_op)
 {
 	lima_gp_ir_alu_node_t* complex2_node =
 		lima_gp_ir_alu_node_create(lima_gp_ir_op_complex2);
 	if (!complex2_node)
-		return false;
+		return NULL;
 	
 	complex2_node->children[0] = child;
 	lima_gp_ir_node_link(&complex2_node->node, child);
@@ -43,7 +246,7 @@ static lima_gp_ir_node_t* lower_complex(lima_gp_ir_node_t* child,
 	if (!impl_node)
 	{
 		lima_gp_ir_node_delete(&complex2_node->node);
-		return false;
+		return NULL;
 	}
 	
 	impl_node->children[0] = child;
@@ -55,7 +258,7 @@ static lima_gp_ir_node_t* lower_complex(lima_gp_ir_node_t* child,
 	{
 		lima_gp_ir_node_delete(&complex2_node->node);
 		lima_gp_ir_node_delete(&impl_node->node);
-		return false;
+		return NULL;
 	}
 	
 	complex1_node->children[0] = &impl_node->node;
@@ -76,7 +279,7 @@ static lima_gp_ir_node_t* lower_exp2(lima_gp_ir_node_t* orig)
 	lima_gp_ir_alu_node_t* preexp2_node =
 		lima_gp_ir_alu_node_create(lima_gp_ir_op_preexp2);
 	if (!preexp2_node)
-		return false;
+		return NULL;
 	
 	preexp2_node->children[0] = child;
 	lima_gp_ir_node_link(&preexp2_node->node, child);
@@ -100,7 +303,7 @@ static lima_gp_ir_node_t* lower_log2(lima_gp_ir_node_t* orig)
 	lima_gp_ir_alu_node_t* postlog2_node =
 		lima_gp_ir_alu_node_create(lima_gp_ir_op_postlog2);
 	if (!postlog2_node)
-		return false;
+		return NULL;
 	
 	lima_gp_ir_node_t* ret = lower_complex(child, lima_gp_ir_op_log2_impl);
 	
@@ -823,6 +1026,186 @@ static lima_gp_ir_node_t* lower_tan(lima_gp_ir_node_t* orig)
 	return &mul_node->node;
 }
 
+//eq(x, y) = min(x >= y, y >= x)
+static lima_gp_ir_node_t* lower_eq(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* ge1 =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_ge);
+	
+	if (!ge1)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* ge2 =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_ge);
+	
+	if (!ge2)
+	{
+		lima_gp_ir_node_delete(&ge1->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* min =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_min);
+	
+	if (!min)
+	{
+		lima_gp_ir_node_delete(&ge1->node);
+		lima_gp_ir_node_delete(&ge2->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	ge1->children[0] = orig_alu->children[0];
+	ge1->children[1] = orig_alu->children[1];
+	lima_gp_ir_node_link(&ge1->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&ge1->node, orig_alu->children[1]);
+	
+	ge2->children[0] = orig_alu->children[1];
+	ge2->children[1] = orig_alu->children[0];
+	lima_gp_ir_node_link(&ge2->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&ge2->node, orig_alu->children[1]);
+	
+	min->children[0] = &ge1->node;
+	min->children[1] = &ge2->node;
+	lima_gp_ir_node_link(&min->node, &ge1->node);
+	lima_gp_ir_node_link(&min->node, &ge2->node);
+	
+	return &min->node;
+}
+
+//ne(x, y) = max(x < y, y < x)
+static lima_gp_ir_node_t* lower_ne(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* lt1 =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_lt);
+	
+	if (!lt1)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* lt2 =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_lt);
+	
+	if (!lt2)
+	{
+		lima_gp_ir_node_delete(&lt1->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* max =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_max);
+	
+	if (!max)
+	{
+		lima_gp_ir_node_delete(&lt1->node);
+		lima_gp_ir_node_delete(&lt2->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	lt1->children[0] = orig_alu->children[0];
+	lt1->children[1] = orig_alu->children[1];
+	lima_gp_ir_node_link(&lt1->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&lt1->node, orig_alu->children[1]);
+	
+	lt2->children[0] = orig_alu->children[1];
+	lt2->children[1] = orig_alu->children[0];
+	lima_gp_ir_node_link(&lt1->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&lt1->node, orig_alu->children[1]);
+	
+	max->children[0] = &lt1->node;
+	max->children[1] = &lt2->node;
+	lima_gp_ir_node_link(&max->node, &lt1->node);
+	lima_gp_ir_node_link(&max->node, &lt2->node);
+	
+	return &max->node;
+}
+
+//f2b(x) = ne(x, 0.0)
+static lima_gp_ir_node_t* lower_f2b(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_const_node_t* zero = lima_gp_ir_const_node_create();
+	
+	if (!zero)
+		return NULL;
+	
+	zero->constant = 0.0f;
+	
+	lima_gp_ir_alu_node_t* ne = lima_gp_ir_alu_node_create(lima_gp_ir_op_ne);
+	
+	if (!ne)
+	{
+		lima_gp_ir_node_delete(&zero->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	ne->children[0] = orig_alu->children[0];
+	ne->children[1] = &zero->node;
+	lima_gp_ir_node_link(&ne->node, orig_alu->children[0]);
+	lima_gp_ir_node_link(&ne->node, &zero->node);
+	
+	return &ne->node;
+}
+
+//f2i(x) = sign(x) * floor(abs(x))
+static lima_gp_ir_node_t* lower_f2i(lima_gp_ir_node_t* orig)
+{
+	lima_gp_ir_alu_node_t* sign =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_sign);
+	
+	if (!sign)
+		return NULL;
+	
+	lima_gp_ir_alu_node_t* floor =
+		lima_gp_ir_alu_node_create(lima_gp_ir_op_floor);
+	
+	if (!floor)
+	{
+		lima_gp_ir_node_delete(&sign->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* abs = lima_gp_ir_alu_node_create(lima_gp_ir_op_abs);
+	
+	if (!abs)
+	{
+		lima_gp_ir_node_delete(&sign->node);
+		lima_gp_ir_node_delete(&floor->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* mul = lima_gp_ir_alu_node_create(lima_gp_ir_op_mul);
+	
+	if (!abs)
+	{
+		lima_gp_ir_node_delete(&sign->node);
+		lima_gp_ir_node_delete(&floor->node);
+		lima_gp_ir_node_delete(&abs->node);
+		return NULL;
+	}
+	
+	lima_gp_ir_alu_node_t* orig_alu = gp_ir_node_to_alu(orig);
+	
+	abs->children[0] = orig_alu->children[0];
+	lima_gp_ir_node_link(&abs->node, orig_alu->children[0]);
+	
+	floor->children[0] = &abs->node;
+	lima_gp_ir_node_link(&floor->node, &abs->node);
+	
+	sign->children[0] = orig_alu->children[0];
+	lima_gp_ir_node_link(&sign->node, orig_alu->children[0]);
+	
+	mul->children[0] = &sign->node;
+	mul->children[1] = &floor->node;
+	lima_gp_ir_node_link(&mul->node, &sign->node);
+	lima_gp_ir_node_link(&mul->node, &floor->node);
+	
+	return &mul->node;
+}
+
 typedef struct
 {
 	lower_cb cb;
@@ -830,6 +1213,11 @@ typedef struct
 } lower_cb_info_t;
 
 static const lower_cb_info_t lower_cb_info[] = {
+	{ lower_abs,   lima_gp_ir_op_abs   },
+	{ lower_not,   lima_gp_ir_op_not   },
+	{ lower_div,   lima_gp_ir_op_div   },
+	{ lower_mod,   lima_gp_ir_op_mod   },
+	{ lower_lrp,   lima_gp_ir_op_lrp   },
 	{ lower_exp2,  lima_gp_ir_op_exp2  },
 	{ lower_log2,  lima_gp_ir_op_log2  },
 	{ lower_rcp,   lima_gp_ir_op_rcp   },
@@ -842,7 +1230,11 @@ static const lower_cb_info_t lower_cb_info[] = {
 	{ lower_sqrt,  lima_gp_ir_op_sqrt  },
 	{ lower_sin,   lima_gp_ir_op_sin   },
 	{ lower_cos,   lima_gp_ir_op_cos   },
-	{ lower_tan,   lima_gp_ir_op_tan   }
+	{ lower_tan,   lima_gp_ir_op_tan   },
+	{ lower_eq,    lima_gp_ir_op_eq    },
+	{ lower_ne,    lima_gp_ir_op_ne    },
+	{ lower_f2b,   lima_gp_ir_op_f2b   },
+	{ lower_f2i,   lima_gp_ir_op_f2i   }
 };
 
 #define NUM_LOWER_CALLBACKS sizeof(lower_cb_info)/sizeof(lower_cb_info_t)
