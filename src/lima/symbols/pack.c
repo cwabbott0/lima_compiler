@@ -339,6 +339,8 @@ static bool pack_table_std(lima_symbol_table_t* table, unsigned num_vec4s)
 			if (state.free_low[i] > table->total_size)
 				table->total_size = state.free_low[i];
 		
+		table->total_size *= 4;
+		
 		return true;
 	}
 	
@@ -520,6 +522,9 @@ bool lima_shader_symbols_pack(lima_shader_symbols_t* symbols,
 		if (symbols->uniform_table.total_size
 			+ symbols->temporary_table.total_size > 304)
 			return false;
+		
+		symbols->cur_uniform_index = symbols->uniform_table.total_size +
+			symbols->temporary_table.total_size;
 	}
 	else
 	{

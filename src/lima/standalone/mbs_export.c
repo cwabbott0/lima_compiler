@@ -211,7 +211,12 @@ static mbs_chunk_t* export_cver(lima_shader_t* shader)
 	if (!code_chunk)
 		goto err_mem;
 	
-	//TODO fill with code
+	if (!mbs_chunk_append_data(code_chunk, lima_shader_get_code(shader),
+							   lima_shader_get_code_size(shader)))
+	{
+		mbs_chunk_delete(code_chunk);
+		goto err_mem;
+	}
 	
 	if (!mbs_chunk_append(chunk, code_chunk))
 	{

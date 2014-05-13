@@ -215,8 +215,10 @@ static bool mbs_uniform_export(mbs_chunk_t* uniform_table, lima_symbol_t* symbol
 			return false;
 		}
 		
-		if (!mbs_chunk_append_data(vini_chunk, symbol->array_const,
-								   component_counts[symbol->type] * num_rows[symbol->type]))
+		uint32_t count = component_counts[symbol->type] * num_rows[symbol->type];
+		if (!mbs_chunk_append_data(vini_chunk, &count, sizeof(uint32_t)) ||
+			!mbs_chunk_append_data(vini_chunk, symbol->array_const,
+								   count * sizeof(float)))
 		{
 			mbs_chunk_delete(chunk);
 			mbs_chunk_delete(vini_chunk);
@@ -418,16 +420,16 @@ mbs_chunk_t* lima_export_varying_table(lima_shader_symbols_t* symbols)
 	return varying_table;
 }
 
-typedef struct {
+typedef struct __attribute__((packed)) {
 	uint8_t unknown_0; //=0x00
 	uint8_t type;
 	uint16_t component_count;
 	uint16_t component_size;
 	uint16_t array_entries;
 	uint16_t stride;
-	uint8_t  unknown_1; //=0x10, except 0x18 when used as texcoord
+	uint8_t  unknown_1; //=0x10
 	uint8_t  precision;
-	uint32_t invariant; //=0x00000000
+	uint16_t unknown_2; //=0x0000
 	uint16_t offset;
 } mbs_attribute_t;
 
@@ -460,7 +462,7 @@ static mbs_chunk_t* mbs_attribute_export(lima_symbol_t* symbol)
 		.stride = symbol->stride,
 		.unknown_1 = 0x10,
 		.precision = precisions[symbol->precision],
-		.invariant = 0,
+		.unknown_2 = 0,
 		.offset = symbol->offset,
 	};
 	

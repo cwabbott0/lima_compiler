@@ -1,7 +1,7 @@
 /* Author(s):
  *   Connor Abbott (connor@abbott.cx)
  *
- * Copyright (c) 2013 Connor Abbott
+ * Copyright (c) 2014 Connor Abbott
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@ extern "C" {
 #include "bitset.h"
 #include "ptrset.h"
 #include "list.h"
+#include "symbols/symbols.h"
 #include <stdint.h>
 
 /* forward declaration of datastructures defined in scheduler.h */
@@ -725,6 +726,11 @@ bool lima_gp_ir_dead_code_eliminate(lima_gp_ir_prog_t* prog);
 /* If-conversion */
 
 bool lima_gp_ir_if_convert(lima_gp_ir_prog_t* prog);
+
+/* Lower constants to uniforms */
+
+bool lima_gp_ir_lower_consts(
+	lima_gp_ir_prog_t* prog, lima_shader_symbols_t* symbols);
 
 /* Liveness calculation */
 

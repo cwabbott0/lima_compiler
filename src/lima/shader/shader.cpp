@@ -363,6 +363,8 @@ static void compile_gp_shader(lima_shader_t* shader, bool dump_ir)
 	
 	lima_gp_ir_lower_prog(shader->ir.gp.gp_prog);
 	
+	lima_gp_ir_lower_consts(shader->ir.gp.gp_prog, &shader->symbols);
+	
 	lima_gp_ir_prog_calc_dependencies(shader->ir.gp.gp_prog);
 	
 	lima_gp_ir_prog_calc_crit_path(shader->ir.gp.gp_prog);

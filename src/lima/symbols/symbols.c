@@ -225,6 +225,19 @@ lima_symbol_t* lima_symbol_table_find(lima_symbol_table_t* table,
 	return NULL;
 }
 
+static bool key_equals(const void* a, const void* b)
+{
+	const float* f_a = (float*) a;
+	const float* f_b = (float*) b;
+	
+	return f_a == f_b;
+}
+
+static inline uint32_t hash_float(float f)
+{
+	return _mesa_hash_data(&f, sizeof(float));
+}
+
 bool lima_shader_symbols_init(lima_shader_symbols_t* symbols)
 {
 	if (!lima_symbol_table_init(&symbols->attribute_table))
@@ -239,9 +252,16 @@ bool lima_shader_symbols_init(lima_shader_symbols_t* symbols)
 	if (!lima_symbol_table_init(&symbols->temporary_table))
 		goto err_mem3;
 	
+	symbols->constants = _mesa_hash_table_create(NULL, key_equals);
+	if (!symbols->constants)
+		goto err_mem4;
+	
 	symbols->cur_uniform_index = 0;
 	symbols->cur_const_index = 0;
 	return true;
+	
+	err_mem4:
+	lima_symbol_table_delete(&symbols->temporary_table);
 	
 	err_mem3:
 	lima_symbol_table_delete(&symbols->uniform_table);
@@ -309,6 +329,65 @@ bool lima_shader_symbols_add_temporary(lima_shader_symbols_t* symbols,
 									   lima_symbol_t* symbol)
 {
 	return lima_symbol_table_add(&symbols->temporary_table, symbol);
+}
+
+unsigned lima_shader_symbols_add_const(lima_shader_symbols_t* symbols,
+									   float constant)
+{
+	struct hash_entry* entry = _mesa_hash_table_search(symbols->constants,
+													   hash_float(constant),
+													   &constant);
+	
+	if (entry)
+	{
+		lima_symbol_t* symbol = (lima_symbol_t*) entry->data;
+		return symbol->offset;
+	}
+	
+	lima_symbol_t* symbol = lima_const_create(symbols->cur_const_index,
+											  lima_symbol_float,
+											  0, &constant);
+	
+	symbols->cur_const_index++;
+	
+	if (!symbol)
+		return 0;
+	
+	symbol->offset = symbols->cur_uniform_index++;
+	symbol->stride = 4;
+	
+	lima_shader_symbols_add_uniform(symbols, symbol);
+	
+	_mesa_hash_table_insert(symbols->constants, hash_float(constant),
+							symbol->array_const, symbol);
+	
+	return symbol->offset;
+}
+
+unsigned lima_shader_symbols_add_clamp_const(lima_shader_symbols_t* symbols,
+											 float const1, float const2)
+{
+	float constants[2] = {const1, const2};
+	
+	lima_symbol_t* symbol = lima_const_create(symbols->cur_const_index,
+											  lima_symbol_vec2,
+											  0, constants);
+	
+	if (!symbol)
+		return 0;
+	
+	symbols->cur_const_index++;
+	
+	//round cur_uniform_index to multiple of 4
+	symbols->cur_uniform_index = (symbols->cur_uniform_index + 3) & ~3;
+	
+	symbol->offset = symbols->cur_uniform_index;
+	symbols->cur_uniform_index += 2;
+	
+	symbol->stride = 4;
+	
+	lima_shader_symbols_add_uniform(symbols, symbol);
+	return symbol->offset / 4;
 }
 
 static void print_tabs(unsigned tabs)

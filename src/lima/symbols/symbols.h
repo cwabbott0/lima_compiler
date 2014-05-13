@@ -32,6 +32,7 @@ extern "C" {
 #include <stdbool.h>
 #include "shader.h"
 #include "mbs/mbs.h"
+#include "main/hash_table.h"
 
 /* symbol types */
 
@@ -122,7 +123,11 @@ lima_symbol_t* lima_symbol_table_find(lima_symbol_table_t* table,
 
 typedef struct lima_shader_symbols_s {
 	lima_symbol_table_t attribute_table, varying_table, uniform_table, temporary_table;
+	
 	unsigned cur_uniform_index, cur_const_index; /* for inserting constants */
+	
+	/* hash table of previously inserted constants */
+	struct hash_table* constants;
 } lima_shader_symbols_t;
 
 bool lima_shader_symbols_init(lima_shader_symbols_t* symbols);
@@ -142,11 +147,19 @@ bool lima_shader_symbols_add_temporary(lima_shader_symbols_t* symbols,
 									   lima_symbol_t* symbol);
 
 /* convenience method for inserting constants in the GP backend - returns the
- * index of the created constant
+ * index of the created constant.
  */
 
 unsigned lima_shader_symbols_add_const(lima_shader_symbols_t* symbols,
-									   lima_symbol_t* symbol);
+									   float constant);
+
+/* inserts two constants into the x and y components of a uniform - used for
+ * clamp-const in the GP backend. Returns the index divided by 4, since it will
+ * always be a multiple of 4.
+ */
+
+unsigned lima_shader_symbols_add_clamp_const(lima_shader_symbols_t* symbols,
+											 float const1, float const2);
 
 void lima_shader_symbols_print(lima_shader_symbols_t* symbols);
 
