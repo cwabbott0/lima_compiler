@@ -377,10 +377,9 @@ static void compile_gp_shader(lima_shader_t* shader, bool dump_ir)
 		lima_gp_ir_prog_print(shader->ir.gp.gp_prog, 0, false);
 	}
 	
-	unsigned size;
-	void* code = lima_gp_ir_codegen(shader->ir.gp.gp_prog, &size,
+	void* code = lima_gp_ir_codegen(shader->ir.gp.gp_prog, &shader->code_size,
 									&shader->info.vs.attrib_prefetch);
-	shader->info.vs.num_instructions = size / 16;
+	shader->info.vs.num_instructions = shader->code_size / 16;
 	
 	shader->code = ralloc_size(shader->mem_ctx, shader->code_size);
 	memcpy(shader->code, code, shader->code_size);
@@ -428,7 +427,6 @@ bool lima_shader_compile(lima_shader_t* shader, bool dump_ir)
 		compile_gp_shader(shader, dump_ir);
 	}
 	
-	//TODO
 	shader->compiled = true;
 	return true;
 }
