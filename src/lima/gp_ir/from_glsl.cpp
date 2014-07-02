@@ -1409,5 +1409,6 @@ unsigned gp_ir_visitor::calc_deref_offset(ir_dereference* deref,
 											  out_symbol, out_indirect);
 	
 	lima_symbol_t* field = get_struct_field(*out_symbol, deref_record->field);
+	*out_symbol = field;
 	return offset + field->offset;
 }
