@@ -1466,6 +1466,7 @@ void ir_to_pp_hir_visitor::calc_deref_offset(unsigned* offset,
 		
 		lima_symbol_t* symbol = (lima_symbol_t*) entry->data;
 		*out_symbol = symbol;
+		*out_indirect = NULL;
 		*offset += symbol->offset / alignment;
 	}
 	else if (deref_array)
