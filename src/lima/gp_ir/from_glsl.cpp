@@ -457,6 +457,10 @@ ir_visitor_status gp_ir_visitor::visit_enter(ir_assignment* ir)
 	//conditions were lowered by lima_lower_conditions
 	assert(ir->condition == NULL);
 	
+	unsigned i;
+	for (i = 0; i < 4; i++)
+		this->cur_nodes[i] = NULL;
+	
 	this->in_assignee = false;
 	ir->rhs->accept(this);
 	
@@ -926,6 +930,9 @@ ir_visitor_status gp_ir_visitor::visit_enter(ir_swizzle* ir)
 		used[components[i]] = true;
 	}
 	
+	for (i = ir->val->type->vector_elements; i < 4; i++)
+		assert(this->cur_nodes[i] == NULL);
+	
 	//delete unused components, so we don't leak them
 	for (i = 0; i < 4; i++)
 		if (this->cur_nodes[i] && !used[i])
@@ -1392,6 +1399,9 @@ unsigned gp_ir_visitor::calc_deref_offset(ir_dereference* deref,
 		bool old_in_assignee = this->in_assignee;
 		this->in_assignee = false;
 		
+		unsigned i;
+		for (i = 0; i < 4; i++)
+			this->cur_nodes[i] = NULL;
 		deref_array->array_index->accept(this);
 		lima_gp_ir_node_t* index = this->cur_nodes[0];
 		
