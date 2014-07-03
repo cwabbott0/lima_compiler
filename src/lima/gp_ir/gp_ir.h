@@ -423,6 +423,9 @@ typedef struct lima_gp_ir_root_node_s
 #define gp_ir_root_node_next(root_node) \
 	container_of(root_node->node_list.next, lima_gp_ir_root_node_t, node_list)
 
+	
+/* unlink a root node from it's children before removing it from the list */
+void lima_gp_ir_root_node_remove(lima_gp_ir_root_node_t* node);
 
 /* Load Node */
 

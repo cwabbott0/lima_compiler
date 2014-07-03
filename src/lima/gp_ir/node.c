@@ -803,7 +803,7 @@ void lima_gp_ir_node_print(lima_gp_ir_node_t* node, unsigned tabs)
 		node->print(node, tabs);
 }
 
-void lima_gp_ir_node_delete(lima_gp_ir_node_t* node)
+static void node_remove(lima_gp_ir_node_t* node)
 {
 	lima_gp_ir_child_node_iter_t iter;
 	ptrset_t children;
@@ -840,8 +840,17 @@ void lima_gp_ir_node_delete(lima_gp_ir_node_t* node)
 		free(dep_info);
 	}
 	ptrset_delete(node->preds);
-	
+}
+
+void lima_gp_ir_node_delete(lima_gp_ir_node_t* node)
+{
+	node_remove(node);
 	node->delete_(node);
+}
+
+void lima_gp_ir_root_node_remove(lima_gp_ir_root_node_t *node)
+{
+	node_remove(&node->node);
 }
 
 /* TODO: make this more efficient/scalable by allocating the stack the heap and

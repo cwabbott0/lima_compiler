@@ -174,8 +174,9 @@ void lima_gp_ir_block_insert_before(lima_gp_ir_root_node_t* node,
 void lima_gp_ir_block_remove(lima_gp_ir_root_node_t* node)
 {
 	node->block->num_nodes--;
+	lima_gp_ir_root_node_remove(node);
 	list_del(&node->node_list);
-	lima_gp_ir_node_delete(&node->node);
+	node->node.delete_(&node->node);
 }
 
 void lima_gp_ir_block_replace(lima_gp_ir_root_node_t* old_node,
@@ -183,9 +184,10 @@ void lima_gp_ir_block_replace(lima_gp_ir_root_node_t* old_node,
 {
 	block_insert_helper(new_node);
 	new_node->block = old_node->block;
+	lima_gp_ir_root_node_remove(old_node);
 	__list_add(&new_node->node_list, old_node->node_list.prev,
 			   old_node->node_list.next);
-	lima_gp_ir_node_delete(&old_node->node);
+	old_node->node.delete_(&old_node->node);
 }
 
 void lima_gp_ir_block_insert_phi(lima_gp_ir_block_t* block,
