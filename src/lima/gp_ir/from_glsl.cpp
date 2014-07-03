@@ -1364,6 +1364,7 @@ unsigned gp_ir_visitor::calc_deref_offset(ir_dereference* deref,
 		
 		lima_symbol_t* symbol = (lima_symbol_t*) entry->data;
 		*out_symbol = symbol;
+		*out_indirect = NULL;
 		return symbol->offset;
 	}
 	else if (deref_array)
