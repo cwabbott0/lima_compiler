@@ -1474,10 +1474,23 @@ void ir_to_pp_hir_visitor::calc_deref_offset(unsigned* offset,
 		this->calc_deref_offset(offset, deref_array->array->as_dereference(),
 								out_indirect, out_symbol, alignment);
 		
+		/*
+		 * Matrices are accessed through array dereferences (at this point, we
+		 * should've lowered everything so that matrices aren't referenced
+		 * directly). The stride information inside the symbol is incorrect
+		 * for this case, since it is the stride of the whole symbol and not
+		 * the stride of the individual columns. So here, we detect if we're
+		 * dereferencing a matrix and supply the correct stride instead.
+		 */
+		
+		unsigned stride = (*out_symbol)->stride;
+		if (deref_array->array->type->is_matrix())
+			stride = stride / deref_array->array->type->matrix_columns;
+		
 		ir_constant* constant = deref_array->array_index->as_constant();
 		if (constant)
 		{
-			*offset += constant->value.i[0] * (*out_symbol)->stride / alignment;
+			*offset += constant->value.i[0] * stride / alignment;
 		}
 		else
 		{
@@ -1488,7 +1501,7 @@ void ir_to_pp_hir_visitor::calc_deref_offset(unsigned* offset,
 			lima_pp_hir_cmd_t* index = this->cur_cmd;
 			
 			lima_pp_hir_cmd_t* new_offset;
-			if ((*out_symbol)->stride / alignment != 1)
+			if (stride / alignment != 1)
 			{
 				lima_pp_hir_cmd_t* mul = lima_pp_hir_cmd_create(lima_pp_hir_op_mul);
 				mul->dst.reg.size = 1;
@@ -1497,7 +1510,7 @@ void ir_to_pp_hir_visitor::calc_deref_offset(unsigned* offset,
 				mul->src[0].depend = index;
 				mul->src[1].constant = true;
 				mul->src[1].depend = malloc(sizeof(float));
-				float constant = (float) ((*out_symbol)->stride / alignment);
+				float constant = (float) (stride / alignment);
 				memcpy(mul->src[1].depend, &constant, sizeof(float));
 				lima_pp_hir_block_insert_end(this->cur_block, mul);
 				new_offset = mul;

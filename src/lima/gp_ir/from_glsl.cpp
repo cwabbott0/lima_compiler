@@ -1372,9 +1372,22 @@ unsigned gp_ir_visitor::calc_deref_offset(ir_dereference* deref,
 		unsigned offset = this->calc_deref_offset(deref_array->array->as_dereference(),
 												  out_symbol, out_indirect);
 		
+		/*
+		 * Matrices are accessed through array dereferences (at this point, we
+		 * should've lowered everything so that matrices aren't referenced
+		 * directly). The stride information inside the symbol is incorrect
+		 * for this case, since it is the stride of the whole symbol and not
+		 * the stride of the individual columns. So here, we detect if we're
+		 * dereferencing a matrix and supply the correct stride instead.
+		 */
+		
+		unsigned stride = (*out_symbol)->stride;
+		if (deref_array->array->type->is_matrix())
+			stride = stride / deref_array->array->type->matrix_columns;
+		
 		ir_constant* constant = deref_array->array_index->as_constant();
 		if (constant)
-			return offset + constant->value.i[0] * (*out_symbol)->stride;
+			return offset + constant->value.i[0] * stride;
 		
 		bool old_in_assignee = this->in_assignee;
 		this->in_assignee = false;
@@ -1384,11 +1397,12 @@ unsigned gp_ir_visitor::calc_deref_offset(ir_dereference* deref,
 		
 		lima_gp_ir_node_t* new_offset;
 		
-		if ((*out_symbol)->stride != 4)
+		if (stride != 4)
 		{
-			lima_gp_ir_const_node_t* stride = lima_gp_ir_const_node_create();
-			stride->constant = (*out_symbol)->stride / 4;
-			new_offset = build_alu_dual(lima_gp_ir_op_mul, index, &stride->node);
+			lima_gp_ir_const_node_t* stride_node = lima_gp_ir_const_node_create();
+			stride_node->constant = stride / 4;
+			new_offset = build_alu_dual(lima_gp_ir_op_mul, index,
+										&stride_node->node);
 		}
 		else
 			new_offset = index;
