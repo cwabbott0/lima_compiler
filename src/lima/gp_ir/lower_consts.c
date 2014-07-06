@@ -84,7 +84,7 @@ bool lima_gp_ir_lower_consts(lima_gp_ir_prog_t* prog,
 		lima_gp_ir_root_node_t* node;
 		gp_ir_block_for_each_node(block, node)
 		{
-			if (!lima_gp_ir_node_dfs(&node->node, lower_cb, NULL, symbols))
+			if (!lima_gp_ir_node_dfs(&node->node, NULL, lower_cb, symbols))
 				return false;
 		}
 	}
