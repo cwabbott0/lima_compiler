@@ -347,13 +347,13 @@ static void compile_gp_shader(lima_shader_t* shader, bool dump_ir)
 		lima_gp_ir_prog_print(shader->ir.gp.gp_prog, 0, false);
 	}
 	
-	lima_gp_ir_const_fold_prog(shader->ir.gp.gp_prog);
-	
 	lima_gp_ir_if_convert(shader->ir.gp.gp_prog);
 	
 	lima_gp_ir_dead_code_eliminate(shader->ir.gp.gp_prog);
 	
 	lima_gp_ir_reg_eliminate(shader->ir.gp.gp_prog);
+	
+	lima_gp_ir_const_fold_prog(shader->ir.gp.gp_prog);
 	
 	lima_gp_ir_eliminate_phi_nodes(shader->ir.gp.gp_prog);
 	
