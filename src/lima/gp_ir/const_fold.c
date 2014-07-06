@@ -63,35 +63,103 @@ static float fold_sign(float* args)
 
 static float fold_ge(float* args)
 {
-	if (args[0] >= args[1])
-		return 1.0f;
-	return 0.0f;
+	return args[0] >= args[1] ? 1.0f : 0.0f;
 }
 
 static float fold_lt(float* args)
 {
-	if (args[0] < args[1])
-		return 1.0f;
-	return 0.0f;
+	return args[0] < args[1] ? 1.0f : 0.0f;
 }
 
 static float fold_min(float* args)
 {
-	if (args[0] >= args[1])
-		return args[1];
-	return args[0];
+	return fminf(args[0], args[1]);
 }
 
 static float fold_max(float* args)
 {
-	if (args[0] >= args[1])
-		return args[0];
-	return args[1];
+	return fmaxf(args[0], args[1]);
 }
 
 static float fold_neg(float* args)
 {
 	return -args[0];
+}
+
+static float fold_abs(float* args)
+{
+	return fabsf(args[0]);
+}
+
+static float fold_not(float* args)
+{
+	return 1.0f - args[0];
+}
+
+static float fold_div(float* args)
+{
+	return args[0] / args[1];
+}
+
+static float fold_mod(float* args)
+{
+	float temp = args[0] / args[1];
+	return args[1] * (temp - floorf(temp));
+}
+
+static float fold_lrp(float* args)
+{
+	return args[1] * args[2] + args[0] * (1 - args[2]);
+}
+
+static float fold_exp2(float* args)
+{
+	return exp2f(args[0]);
+}
+
+static float fold_log2(float *args)
+{
+	return log2f(args[0]);
+}
+
+static float fold_rcp(float* args)
+{
+	return 1.0f / args[0];
+}
+
+static float fold_rsqrt(float* args)
+{
+	return 1.0f / sqrtf(args[0]);
+}
+
+static float fold_ceil(float* args)
+{
+	return ceilf(args[0]);
+}
+
+static float fold_fract(float* args)
+{
+	return args[0] - floorf(args[0]);
+}
+
+static float fold_exp(float* args)
+{
+	return expf(args[0]);
+}
+
+static float fold_log(float* args)
+{
+	return logf(args[0]);
+}
+
+static float fold_pow(float* args)
+{
+	return powf(args[0], args[1]);
+}
+
+static float fold_sqrt(float* args)
+{
+	return sqrtf(args[0]);
 }
 
 static float fold_sin(float* args)
@@ -107,6 +175,26 @@ static float fold_cos(float* args)
 static float fold_tan(float* args)
 {
 	return tanf(args[0]);
+}
+
+static float fold_eq(float* args)
+{
+	return (args[0] == args[1]) ? 1.0f : 0.0f;
+}
+
+static float fold_ne(float* args)
+{
+	return (args[0] != args[1]) ? 1.0f : 0.0f;
+}
+
+static float fold_f2b(float* args)
+{
+	return (args[0] == 0.0) ? 1.0f : 0.0;
+}
+
+static float fold_f2i(float* args)
+{
+	return fold_sign(args) * floorf(fabsf(args[0]));
 }
 
 typedef struct
@@ -127,9 +215,28 @@ static const fold_op_info_t fold_ops[] = {
 	{ fold_min,    lima_gp_ir_op_min    },
 	{ fold_max,    lima_gp_ir_op_max    },
 	{ fold_neg,    lima_gp_ir_op_neg    },
+	{ fold_abs,    lima_gp_ir_op_abs    },
+	{ fold_not,    lima_gp_ir_op_not    },
+	{ fold_div,    lima_gp_ir_op_div    },
+	{ fold_mod,    lima_gp_ir_op_mod    },
+	{ fold_lrp,    lima_gp_ir_op_lrp    },
+	{ fold_exp2,   lima_gp_ir_op_exp2   },
+	{ fold_log2,   lima_gp_ir_op_log2   },
+	{ fold_rcp,    lima_gp_ir_op_rcp    },
+	{ fold_rsqrt,  lima_gp_ir_op_rsqrt  },
+	{ fold_ceil,   lima_gp_ir_op_ceil   },
+	{ fold_fract,  lima_gp_ir_op_fract  },
+	{ fold_exp,    lima_gp_ir_op_exp    },
+	{ fold_log,    lima_gp_ir_op_log    },
+	{ fold_pow,    lima_gp_ir_op_pow    },
+	{ fold_sqrt,   lima_gp_ir_op_sqrt   },
 	{ fold_sin,    lima_gp_ir_op_sin    },
 	{ fold_cos,    lima_gp_ir_op_cos    },
-	{ fold_tan,    lima_gp_ir_op_tan    }
+	{ fold_tan,    lima_gp_ir_op_tan    },
+	{ fold_eq,     lima_gp_ir_op_eq     },
+	{ fold_ne,     lima_gp_ir_op_ne     },
+	{ fold_f2b,    lima_gp_ir_op_f2b    },
+	{ fold_f2i,    lima_gp_ir_op_f2i    },
 };
 
 #define NUM_FOLD_OPS sizeof(fold_ops)/sizeof(fold_op_info_t)
