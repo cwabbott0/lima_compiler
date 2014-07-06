@@ -280,6 +280,7 @@ void lima_shader_symbols_delete(lima_shader_symbols_t* symbols)
 	lima_symbol_table_delete(&symbols->attribute_table);
 	lima_symbol_table_delete(&symbols->uniform_table);
 	lima_symbol_table_delete(&symbols->temporary_table);
+	_mesa_hash_table_destroy(symbols->constants, NULL);
 }
 
 bool lima_shader_symbols_add_varying(lima_shader_symbols_t* symbols,
