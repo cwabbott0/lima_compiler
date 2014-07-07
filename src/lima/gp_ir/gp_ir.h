@@ -427,6 +427,13 @@ typedef struct lima_gp_ir_root_node_s
 /* unlink a root node from it's children before removing it from the list */
 void lima_gp_ir_root_node_remove(lima_gp_ir_root_node_t* node);
 
+/*
+ * Orders two root nodes, assuming they are not equal and in the same block.
+ * return true if node1 is first, and false if node2 is first.
+ */
+bool lima_gp_ir_root_node_order(lima_gp_ir_root_node_t* node1,
+								lima_gp_ir_root_node_t* node2);
+
 /* Load Node */
 
 typedef struct

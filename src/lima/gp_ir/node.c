@@ -590,15 +590,10 @@ static bool node_init(lima_gp_ir_node_t* node, lima_gp_ir_op_e op)
 	return true;
 }
 
-/*
- * Orders two root nodes, assuming they are not equal and in the same block.
- * return true if node1 is first, and false if node2 is first.
- */
-static bool root_node_order(lima_gp_ir_root_node_t* node1,
-							lima_gp_ir_root_node_t* node2)
+bool lima_gp_ir_root_node_order(lima_gp_ir_root_node_t* node1,
+								lima_gp_ir_root_node_t* node2)
 {
-	struct list* start = &node1->block->node_list;
-	struct list* end = node1->block->node_list.prev;
+	struct list* sentinel = &node1->block->node_list;
 	
 	struct list* node1_forward = &node1->node_list;
 	struct list* node1_backward = &node1->node_list;
@@ -613,6 +608,18 @@ static bool root_node_order(lima_gp_ir_root_node_t* node1,
 		node2_forward = node2_forward->next;
 		node2_backward = node2_backward->prev;
 		
+		if (node1_forward == sentinel)
+		{
+			// We've reached the end without passing by node2, so node1 must be
+			// last.
+			return false;
+		}
+		if (node1_backward == sentinel)
+			return true;
+		if (node2_forward == sentinel)
+			return true;
+		if (node2_backward == sentinel)
+			return false;
 		
 		if (node1_forward == node2_backward ||
 			node1_forward == node2_backward->next)
@@ -624,19 +631,6 @@ static bool root_node_order(lima_gp_ir_root_node_t* node1,
 		
 		if (node2_forward == node1_backward ||
 			node2_forward == node1_backward->next)
-			return false;
-		
-		if (node1_forward == end)
-		{
-			// We've reached the end without passing by node2, so node1 must be
-			// last.
-			return false;
-		}
-		if (node1_backward == start)
-			return true;
-		if (node2_forward == end)
-			return true;
-		if (node2_backward == start)
 			return false;
 	}
 	
@@ -653,7 +647,7 @@ static void add_parent_successor(lima_gp_ir_node_t* node,
 	{
 		if ((*iter.child)->successor == NULL ||
 			((*iter.child)->successor != successor &&
-			root_node_order(successor, (*iter.child)->successor)))
+			lima_gp_ir_root_node_order(successor, (*iter.child)->successor)))
 		{
 			add_parent_successor(*iter.child, successor);
 		}
@@ -680,7 +674,7 @@ void lima_gp_ir_node_link(lima_gp_ir_node_t* parent,
 	if (parent->successor != NULL &&
 		(child->successor == NULL ||
 		(child->successor != parent->successor &&
-		root_node_order(parent->successor, child->successor))))
+		lima_gp_ir_root_node_order(parent->successor, child->successor))))
 	{
 		add_parent_successor(child, parent->successor);
 	}
